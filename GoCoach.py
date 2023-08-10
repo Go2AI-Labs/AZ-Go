@@ -56,12 +56,11 @@ class Coach:
             with open("sensitive.yaml", "r") as stream:
                 try:
                     self.sensitive_config = yaml.safe_load(stream)
-                    print(self.sensitive_config)
-
+                    # print(self.sensitive_config)
                 except yaml.YAMLError as exc:
                     raise ValueError(exc)
 
-    def executeEpisode(self):
+    def executeEpisode(self, disable_resignation_threshold=False):
         """
         This function executes one episode of self-play, starting with player 1.
         As the game is played, each turn is added as a training example to
@@ -87,6 +86,7 @@ class Coach:
         for i in range(8):
             x_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
             y_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
+
         while True:
             episodeStep += 1
             if self.config["display"] == 1:
@@ -111,7 +111,7 @@ class Coach:
                 print("BOARD updated:")
                 # display(board)
                 print(display(board))
-            r, score = self.game.getGameEnded(board.copy(), self.curPlayer, returnScore=True)
+            r, score = self.game.getGameEndedSelfPlay(board.copy(), self.curPlayer, returnScore=True, disable_resignation_threshold=disable_resignation_threshold)
             if r != 0:
                 if self.config["display"] == 1:
                     print("Current episode ends, {} wins with score b {}, W {}.".format('Black' if r == -1 else 'White',

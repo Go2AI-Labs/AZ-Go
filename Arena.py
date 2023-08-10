@@ -47,7 +47,7 @@ class Arena:
         for i in range(8):
             x_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
             y_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
-        while self.game.getGameEnded(board, curPlayer) == 0:
+        while self.game.getGameEndedArena(board, curPlayer) == 0:
             it += 1
             if verbose:
                 score = self.game.getScore(board)
@@ -75,13 +75,13 @@ class Arena:
 
         if verbose:
             # assert(self.display)
-            r, score = self.game.getGameEnded(board, 1, returnScore=True)
+            r, score = self.game.getGameEndedArena(board, 1, returnScore=True)
 
             if self.config["display"] == 1:
                 print("\nGame over: Turn ", str(it), "Result ", str(r))
                 print(display(board))
                 print(f"Final score: b {score[0]}, W {score[1]}\n")
-        return self.game.getGameEnded(board, 1), action_history
+        return self.game.getGameEndedArena(board, 1), action_history
 
     def playGames(self, num, verbose=True):
         """

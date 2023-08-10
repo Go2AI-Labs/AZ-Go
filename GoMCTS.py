@@ -178,7 +178,8 @@ class MCTS:
             else:
                 perspective = -1
 
-            gameEnd = self.game.getGameEnded(canonicalBoard, perspective)
+            # do not use score threshold in MCTS
+            gameEnd = self.game.getGameEndedArena(canonicalBoard, perspective)
             if gameEnd != 0:
                 return -gameEnd
 

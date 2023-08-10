@@ -67,22 +67,52 @@ class GoGame(Game):
                 filtered.append(v)
         return filtered
 
-    # modified
-    def getGameEnded(self, board, player,returnScore=False):
-        # return 0 if not ended, 1 if player 1 won, -1 if player 1 lost
-        # player = 1
-        #print("Board in gameEnded: ", board.pieces)
+    # Self play games can terminate according to:
+    #   - A dynamic score threshold (todo)
+    #   - A move threshold (7 x 7 x 2 = 98)
+    #   - Both players passing
+    # Self play uses Tromp-Taylor rules (todo)
+    def getGameEndedSelfPlay(self, board, player, returnScore=False, disable_resignation_threshold=False):
         winner = 0
         (score_black, score_white) = self.getScore(board)
         by_score = 0.5 * (board.n * board.n + board.komi)
 
-        if len(board.history) > 500:
-            # stack overflow occurs when MCTS infinitely runs
-            # to avoid this, end game with tie over a set number of moves
-            # print("#### MCTS Recursive Base Case Triggered ####")
-            winner = 1e-4
+        # limit games to 98 moves, determine winner based on score of current board
+        if len(board.history) >= 98:
+            if score_black > score_white:
+                if player == 1:
+                    winner = 1
+                else:
+                    winner = -1
+            elif score_white > score_black:
+                if player == -1:
+                    winner = 1
+                else:
+                    winner = -1
+            else:
+                # Tie
+                winner = 1e-4
+
+        elif disable_resignation_threshold:
+            # score threshold (by_score) is disabled, both players must pass to end game (or until 98 moves reached)
+            if board.history[-1] is None and board.history[-2] is None:
+                if score_black > score_white:
+                    if player == 1:
+                        winner = 1
+                    else:
+                        winner = -1
+                elif score_white > score_black:
+                    if player == -1:
+                        winner = 1
+                    else:
+                        winner = -1
+                else:
+                    # Tie
+                    winner = 1e-4
+
         elif len(board.history) > 1:
-            if (board.history[-1] is None and board.history[-2] is None):
+            # score threshold is enabled, games can be ended early based on score
+            if score_black > by_score or score_white > by_score:
                 if score_black > score_white:
                     if player == 1:
                         winner = 1
@@ -96,7 +126,38 @@ class GoGame(Game):
                 else:
                     # Tie
                     winner = 1e-4
-            elif score_black > by_score or score_white > by_score:
+
+        if returnScore:
+            return winner, (score_black, score_white)
+        return winner
+
+    # Arena games can terminate according to:
+    #   - A move threshold (7 x 7 x 2 = 98)
+    #   - Both players passing
+    # Arena uses the Chinese ruleset (todo)
+    def getGameEndedArena(self, board, player, returnScore=False):
+        winner = 0
+        (score_black, score_white) = self.getScore(board)
+
+        # limit games to 98 moves, determine winner based on score of current board
+        if len(board.history) >= 98:
+            if score_black > score_white:
+                if player == 1:
+                    winner = 1
+                else:
+                    winner = -1
+            elif score_white > score_black:
+                if player == -1:
+                    winner = 1
+                else:
+                    winner = -1
+            else:
+                # Tie
+                winner = 1e-4
+
+        elif len(board.history) > 1:
+            # score threshold (by_score) is disabled, both players must pass to end game (or until 98 moves reached)
+            if board.history[-1] is None and board.history[-2] is None:
                 if score_black > score_white:
                     if player == 1:
                         winner = 1
@@ -110,6 +171,7 @@ class GoGame(Game):
                 else:
                     # Tie
                     winner = 1e-4
+
         if returnScore:
             return winner, (score_black, score_white)
         return winner
