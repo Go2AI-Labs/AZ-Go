@@ -61,7 +61,7 @@ class Arena:
             canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(x_boards, y_boards,
                                                                                  canonicalBoard.pieces, player_board)
             # print("History used to make move: ", canonicalHistory)
-            action = players[curPlayer + 1](canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, )
+            action = players[curPlayer + 1](canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, False)
             player_name = "B" if curPlayer == 1 else "W"
             action_history.append(f";{player_name}[{self.game.action_space_to_GTP(action)}]")
 

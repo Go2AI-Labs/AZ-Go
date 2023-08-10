@@ -60,6 +60,13 @@ class GoGame(Game):
 
         return np.array(valids)
 
+    def filter_valid_moves(self, valids):
+        filtered = []
+        for v in valids:
+            if v != 0:
+                filtered.append(v)
+        return filtered
+
     # modified
     def getGameEnded(self, board, player,returnScore=False):
         # return 0 if not ended, 1 if player 1 won, -1 if player 1 lost

@@ -99,7 +99,7 @@ class Coach:
                                                                                  canonicalBoard.pieces, player_board)
             # print(canonicalHistory)
             temp = int(episodeStep < self.config["temperature_threshold"])
-            pi = self.mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, temp=temp)
+            pi = self.mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, True, temp=temp)
             # get different symmetries/rotations of the board
             sym = self.game.getSymmetries(canonicalHistory, pi)
             for b, p in sym:
@@ -342,8 +342,8 @@ class Coach:
             nmcts = MCTS(self.game, self.nnet, self.config)
 
             print('\nPITTING AGAINST PREVIOUS VERSION')
-            arena = Arena(lambda x, y, z, a, b: np.argmax(pmcts.getActionProb(x, y, z, a, b, temp=0)),
-                          lambda x, y, z, a, b: np.argmax(nmcts.getActionProb(x, y, z, a, b, temp=0)), self.game,
+            arena = Arena(lambda x, y, z, a, b, c: np.argmax(pmcts.getActionProb(x, y, z, a, b, c, temp=0)),
+                          lambda x, y, z, a, b, c: np.argmax(nmcts.getActionProb(x, y, z, a, b, c, temp=0)), self.game,
                           self.config)
             pwins, nwins, draws, outcomes = arena.playGames(self.config["num_arena_episodes"])
             self.winRate.append(nwins / self.config["num_arena_episodes"])
