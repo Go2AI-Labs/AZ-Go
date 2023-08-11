@@ -47,14 +47,14 @@ class GoGame(Game):
         return (b, -player)
 
     # modified
-    def getValidMoves(self, board, player):
+    def getValidMoves(self, board, player, is_self_play):
         # return a fixed size binary vector
         valids = [0 for i in range(self.getActionSize())]
         b = board.copy()
         legalMoves = b.get_legal_moves(player)
         valids[-1] = 1
 
-        if len(board.history) < 15:
+        if len(board.history) < 15 and is_self_play:
             valids[-1] = 0
             
         if len(legalMoves) == 0:

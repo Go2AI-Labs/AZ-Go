@@ -77,7 +77,7 @@ class InterGame(object):
         assert(self.judgeGame()==0)
         
         action = self.Alpha(self.game.getCanonicalForm(self.board,self.curPlayer ))
-        valids = self.game.getValidMoves(self.game.getCanonicalForm(self.board, self.curPlayer),1)
+        valids = self.game.getValidMoves(self.game.getCanonicalForm(self.board, self.curPlayer), 1, True)
 
         if valids[action]==0:
             print(action)
@@ -89,7 +89,7 @@ class InterGame(object):
     def HumanPlay(self,move):
         assert(self.judgeGame()==0)
         x,y = [int(x) for x in move]
-        valids = self.game.getValidMoves(self.game.getCanonicalForm(self.board, self.curPlayer),1)
+        valids = self.game.getValidMoves(self.game.getCanonicalForm(self.board, self.curPlayer), 1, True)
         action= self.game.n * x + y if x!= -1 else self.game.n ** 2
         if valids[action]==0:
             print("Invalid Move!")
@@ -131,7 +131,7 @@ class InterGameTest(object):
     def HumanPlay(self,move):
         assert(self.judgeGame()==0)
         x,y = [int(x) for x in move]
-        valids = self.game.getValidMoves(self.game.getCanonicalForm(self.board, self.curPlayer),1)
+        valids = self.game.getValidMoves(self.game.getCanonicalForm(self.board, self.curPlayer), 1, True)
         action= self.game.n * x + y if x!= -1 else self.game.n ** 2
         if valids[action]==0:
             print("Invalid Move!")
