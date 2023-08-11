@@ -219,7 +219,7 @@ class Coach:
                             total_time += round(end_time - start_time, 2)
                             status_bar(eps + 1, self.config["num_polling_games"],
                                        title="Polling Games", label="Games",
-                                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time, 2) / (eps + 1)} | Total: {round(total_time, 2)}")
+                                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / (eps + 1), 2)} | Total: {round(total_time, 2)}")
 
                         # after polling games are played, check drive and download as many "new" files as possible
                         num_downloads = self.scan_examples_folder_and_load(
@@ -261,7 +261,7 @@ class Coach:
                         total_time += round(end_time - start_time, 2)
                         status_bar(self.currentEpisode, self.config["num_self_play_episodes"],
                                    title="Self Play", label="Games",
-                                   suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time, 2) / self.currentEpisode} | Total: {round(total_time, 2)}")
+                                   suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / (self.currentEpisode), 2)} | Total: {round(total_time, 2)}")
 
                     games_played_during_iteration = self.config["num_self_play_episodes"]
 
@@ -274,27 +274,6 @@ class Coach:
             counts_file.write(
                 f"\n Number of games added to train examples during iteration #{i}: {games_played_during_iteration} games\n")
             counts_file.close()
-
-            # # read trainExamples from local disk and use them for NN training
-            # if i != 1 or self.config["load_model"]:
-            #     new_train_examples = self.iterationTrainExamples
-            #
-            #     # update pathing
-            #     checkpoint_dir = f'logs/go/{self.NetType}_MCTS_SimModified_checkpoint/{self.game.getBoardSize()[0]}/'
-            #     checkpoint_files = [file for file in os.listdir(checkpoint_dir) if
-            #                         file.startswith('checkpoint_') and file.endswith('.pth.tar.examples')]
-            #     latest_checkpoint = max(checkpoint_files, key=lambda x: int(x.split('_')[1].split('.')[0]))
-            #     self.args.load_folder_file = [
-            #         f'logs/go/{self.NetType}_MCTS_SimModified_checkpoint/{self.game.getBoardSize()[0]}/',
-            #         latest_checkpoint]
-            #
-            #     self.loadTrainExamples()
-            #
-            #     self.trainExamplesHistory.append(new_train_examples)
-            # else:
-            #     # save the iteration examples to the history
-            #     if not self.skipFirstSelfPlay:
-            #         self.trainExamplesHistory.append(self.iterationTrainExamples)
 
             # save the iteration examples to the history
             if not self.skipFirstSelfPlay:
@@ -327,11 +306,6 @@ class Coach:
             pmcts = MCTS(self.game, self.pnet, self.config)
 
             trainLog = self.nnet.train(trainExamples)
-
-            # clear trainExamples after they are used
-            # self.trainExamplesHistory = []
-            # self.iterationTrainExamples.clear()
-            # trainExamples.clear()
 
             self.p_loss_per_iteration.append(np.average(trainLog['P_LOSS'].to_numpy()))
             self.v_loss_per_iteration.append(np.average(trainLog['V_LOSS'].to_numpy()))

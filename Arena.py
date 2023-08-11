@@ -67,8 +67,8 @@ class Arena:
 
             valids = self.game.getValidMoves(self.game.getCanonicalForm(board, curPlayer), 1, True)
 
-            if valids[action] == 0:
-                print(action)
+            # if valids[action] == 0:
+                # print(action)
                 # assert valids[action] >0
             board, curPlayer = self.game.getNextState(board, curPlayer, action)
             x_boards, y_boards = y_boards, x_boards
@@ -124,7 +124,7 @@ class Arena:
             total_time += round(end_time - start_time, 2)
             status_bar(eps, maxeps,
                        title="Arena", label="Games",
-                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time, 2) / eps} | Total: {round(total_time, 2)}")
+                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / eps, 2)} | Total: {round(total_time, 2)}")
 
 
         self.player1, self.player2 = self.player2, self.player1
@@ -150,6 +150,6 @@ class Arena:
             total_time += round(end_time - start_time, 2)
             status_bar(eps, maxeps,
                        title="Arena", label="Games",
-                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time, 2) / eps} | Total: {round(total_time, 2)}")
+                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / eps, 2)} | Total: {round(total_time, 2)}")
 
         return oneWon, twoWon, draws, outcomes
