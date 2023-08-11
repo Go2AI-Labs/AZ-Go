@@ -48,6 +48,7 @@ class MCTS:
                    proportional to Nsa[(s,a)]**(1./temp)
         """
 
+
         for i in range(min(int(self.config["num_MCTS_simulations"]), self.smartSimNum)):
             self.search(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, 1, True, use_noise)
 
@@ -62,6 +63,10 @@ class MCTS:
         # else:
         #     counts *= valids
 
+        print("*****************************************************************************************************")
+        print("Valids when getting actionProb: ", valids)
+        print("Counts when getting actionProb: ", counts)
+        print("*****************************************************************************************************")
         if np.sum(counts) == 0:
             counts = valids
         else:
@@ -189,7 +194,9 @@ class MCTS:
         cur_best = -float('inf')
         best_act = -1
 
+        #print("Valids in MCTS: ", valids)
         # pick the action with the highest upper confidence bound
+        #add noise for root node prior probabilities (encourages exploration)
         if is_root and use_noise:
             noise = np.random.dirichlet([0.03] * len(self.game.filter_valid_moves(valids)))
 
@@ -208,6 +215,7 @@ class MCTS:
                     #u = self.config["c_puct"] * self.Ps[s][a] * math.sqrt(self.Ns[s])  # Q = 0 ?
 
                 p = self.Ps[s][a]
+                #add noise for root node prior probabilities (encourages exploration)
                 if is_root and use_noise:
                     p = (1-0.25) * p + 0.25 * noise[i]
                 u = q + self.config["c_puct"] * p * math.sqrt(self.Ns[s]) / (1 + n_sa)

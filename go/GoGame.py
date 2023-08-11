@@ -37,6 +37,7 @@ class GoGame(Game):
 
         b = board.copy()
         if action == self.n * self.n:
+            b.history.append(None)
             return (b, -player)
 
         move = (int(action / self.n), action % self.n)
@@ -51,9 +52,12 @@ class GoGame(Game):
         valids = [0 for i in range(self.getActionSize())]
         b = board.copy()
         legalMoves = b.get_legal_moves(player)
+        valids[-1] = 1
 
+        if len(board.history) < 15:
+            valids[-1] = 0
+            
         if len(legalMoves) == 0:
-            valids[-1] = 1
             return np.array(valids)
         for x, y in legalMoves:
             valids[self.n * x + y] = 1
@@ -93,26 +97,25 @@ class GoGame(Game):
                 # Tie
                 winner = 1e-4
 
-        elif disable_resignation_threshold:
-            # score threshold (by_score) is disabled, both players must pass to end game (or until 98 moves reached)
+        #End game "normally"
+        elif not disable_resignation_threshold and len(board.history) > 1:
+            #Check if both players passed in succession
             if board.history[-1] is None and board.history[-2] is None:
-                if score_black > score_white:
-                    if player == 1:
-                        winner = 1
+                    if score_black > score_white:
+                        if player == 1:
+                            winner = 1
+                        else:
+                            winner = -1
+                    elif score_white > score_black:
+                        if player == -1:
+                            winner = 1
+                        else:
+                            winner = -1
                     else:
-                        winner = -1
-                elif score_white > score_black:
-                    if player == -1:
-                        winner = 1
-                    else:
-                        winner = -1
-                else:
-                    # Tie
-                    winner = 1e-4
-
-        elif len(board.history) > 1:
+                        # Tie
+                        winner = 1e-4
             # score threshold is enabled, games can be ended early based on score
-            if score_black > by_score or score_white > by_score:
+            elif score_black > by_score or score_white > by_score:
                 if score_black > score_white:
                     if player == 1:
                         winner = 1
@@ -126,6 +129,23 @@ class GoGame(Game):
                 else:
                     # Tie
                     winner = 1e-4
+        
+        #Check if both players have passed in succession
+        elif len(board.history) >= 2:
+            if board.history[-1] is None and board.history[-2] is None:
+                    if score_black > score_white:
+                        if player == 1:
+                            winner = 1
+                        else:
+                            winner = -1
+                    elif score_white > score_black:
+                        if player == -1:
+                            winner = 1
+                        else:
+                            winner = -1
+                    else:
+                        # Tie
+                        winner = 1e-4
 
         if returnScore:
             return winner, (score_black, score_white)
