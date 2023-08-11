@@ -1,4 +1,5 @@
 import os
+import time
 from collections import deque
 from datetime import datetime
 import dill 
@@ -82,7 +83,12 @@ def worker_loop(identifier, disable_resignation_threshold):
     neural_network = nn(game, config)
 
     # Load recent model into nnet
-    neural_network.load_checkpoint(sensitive_config["distributed_models_directory"], 'best.pth.tar')
+    while True:
+        try:
+            neural_network.load_checkpoint(sensitive_config["distributed_models_directory"], 'best.pth.tar')
+            break
+        except:
+            time.sleep(300)
     # print("Done loading model")
 
     # print(f"Starting game {iter_num}...")
@@ -106,23 +112,27 @@ if __name__ == "__main__":
     mp.set_start_method('spawn')
 
     pool_num = 1
+    filepath = os.path.join(sensitive_config["distributed_models_directory"], 'best.pth.tar')
     while True:
-        mp.cpu_count()
+        if not os.path.exists(filepath):
+            time.sleep(60)
+        else:
+            mp.cpu_count()
 
-        disable_resignation_threshold = True if pool_num % 5 == 0 else False
+            disable_resignation_threshold = True if pool_num % 5 == 0 else False
 
-        print(f"Pool {pool_num} Started")
+            print(f"Pool {pool_num} Started")
 
-        # create and configure the process pool
-        with mp.Pool(config["num_parallel_games"]) as pool:
-            for i in range(config["num_parallel_games"]):
-                pool.apply_async(worker_loop, args=(i, disable_resignation_threshold,))
+            # create and configure the process pool
+            with mp.Pool(config["num_parallel_games"]) as pool:
+                for i in range(config["num_parallel_games"]):
+                    pool.apply_async(worker_loop, args=(i, disable_resignation_threshold,))
 
-            pool.close()
-            pool.join()
+                pool.close()
+                pool.join()
 
-        # process pool is closed automatically
-        print(f"Pool {pool_num} Finished")
-        print()
+            # process pool is closed automatically
+            print(f"Pool {pool_num} Finished")
+            print()
 
-        pool_num += 1
+            pool_num += 1

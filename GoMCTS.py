@@ -63,10 +63,6 @@ class MCTS:
         # else:
         #     counts *= valids
 
-        print("*****************************************************************************************************")
-        print("Valids when getting actionProb: ", valids)
-        print("Counts when getting actionProb: ", counts)
-        print("*****************************************************************************************************")
         if np.sum(counts) == 0:
             counts = valids
         else:

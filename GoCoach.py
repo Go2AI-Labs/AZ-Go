@@ -100,14 +100,11 @@ class Coach:
             # print(canonicalHistory)
             temp = int(episodeStep < self.config["temperature_threshold"])
             pi = self.mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, True, temp=temp)
-            print("Pi: ", pi)
             # get different symmetries/rotations of the board
             sym = self.game.getSymmetries(canonicalHistory, pi)
             for b, p in sym:
                 trainExamples.append([b, self.curPlayer, p, None])
             action = np.random.choice(len(pi), p=pi)
-            if action == 49:
-                print("-----PASSED-----")
 
             board, self.curPlayer = self.game.getNextState(board, self.curPlayer, action)
             if self.config["display"] == 1:
@@ -124,7 +121,6 @@ class Coach:
             elif r == 0 and self.config["display"] == 1:
                 print(f"Current score: b {score[0]}, W {score[1]}")
             x_boards, y_boards = y_boards, x_boards
-            print("Board history: ", canonicalBoard.history)
 
     def learn(self):
         """
