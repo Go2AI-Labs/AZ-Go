@@ -128,7 +128,7 @@ class MCTS:
 
         return probs * valids
 
-    def search(self, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, calls, is_root, use_noise):
+    def search(self, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, calls, is_root, is_self_play):
         """
         This function performs one iteration of MCTS. It is recursively called
         till a leaf node is found. The action chosen at each node is one that
@@ -160,7 +160,7 @@ class MCTS:
             #print("leaf node")
             self.Ps[s], v = self.nnet.predict(canonicalHistory) #changed from board.pieces
 
-            valids = self.game.getValidMoves(canonicalBoard, 1, True)
+            valids = self.game.getValidMoves(canonicalBoard, 1, is_self_play)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
             if sum_Ps_s > 0:
@@ -197,7 +197,7 @@ class MCTS:
         #print("Valids in MCTS: ", valids)
         # pick the action with the highest upper confidence bound
         #add noise for root node prior probabilities (encourages exploration)
-        if is_root and use_noise:
+        if is_root and is_self_play:
             noise = np.random.dirichlet([0.03] * len(self.game.filter_valid_moves(valids)))
 
         i = -1
@@ -216,7 +216,7 @@ class MCTS:
 
                 p = self.Ps[s][a]
                 #add noise for root node prior probabilities (encourages exploration)
-                if is_root and use_noise:
+                if is_root and is_self_play:
                     p = (1-0.25) * p + 0.25 * noise[i]
                 u = q + self.config["c_puct"] * p * math.sqrt(self.Ns[s]) / (1 + n_sa)
                 if u > cur_best:
@@ -235,12 +235,12 @@ class MCTS:
             # print("###############在search内部节点出现错误：###########")
             # display(canonicalBoard)
             # print("action:{},valids:{},Vs:{}".format(a,valids,self.Vs[s]))
-            valids = self.game.getValidMoves(canonicalBoard, 1, True)
+            valids = self.game.getValidMoves(canonicalBoard, 1, is_self_play)
             self.Vs[s] = valids
             cur_best = -float('inf')
             best_act = -1
 
-            if is_root and use_noise:
+            if is_root and is_self_play:
                 noise = np.random.dirichlet([0.03] * len(self.game.filter_valid_moves(valids)))
 
             i = -1
@@ -258,7 +258,7 @@ class MCTS:
                         #u = self.config["c_puct"] * self.Ps[s][a] * math.sqrt(self.Ns[s])  # Q = 0 ?
 
                     p = self.Ps[s][a]
-                    if is_root and use_noise:
+                    if is_root and is_self_play:
                         p = (1-0.25) * p + 0.25 * noise[i]
                     u = q + self.config["c_puct"] * p * math.sqrt(self.Ns[s]) / (1 + n_sa)
                     if u > cur_best:
@@ -282,7 +282,7 @@ class MCTS:
         calls += 1
         x_boards, y_boards = y_boards, x_boards
         
-        v = self.search(next_s, canonicalHistory, x_boards, y_boards, player_board, calls, False, use_noise)
+        v = self.search(next_s, canonicalHistory, x_boards, y_boards, player_board, calls, False, is_self_play)
         
 
         if (s, a) in self.Qsa:
