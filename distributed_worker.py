@@ -66,14 +66,12 @@ def send_examples_to_server(sensitive_config, local_path):
 with open("config.yaml", "r") as stream:
     try:
         config = yaml.safe_load(stream)
-        # print(config)
     except yaml.YAMLError as exc:
         raise ValueError(exc)
 
 with open("sensitive.yaml", "r") as stream:
     try:
         sensitive_config = yaml.safe_load(stream)
-        # print(sensitive_config)
     except yaml.YAMLError as exc:
         raise ValueError(exc)
 
@@ -100,20 +98,20 @@ def worker_loop(identifier, disable_resignation_threshold):
     # delete it from the local machine
     os.remove(local_path)
     # print("Deleted example from local machine")
-    # print()
 
 
 if __name__ == "__main__":
     mp.set_start_method('spawn')
 
     pool_num = 1
-    filepath = os.path.join(sensitive_config["distributed_models_directory"], 'best.pth.tar')
-    while True:
-        if not os.path.exists(filepath):
-            time.sleep(60)
-        else:
-            mp.cpu_count()
+    sleep_counter = 1
 
+    while True:
+        if not os.path.exists(os.path.join(sensitive_config["distributed_models_directory"], 'best.pth.tar')):
+            time.sleep(60)
+            print(f"Waiting for model to be uploaded, {sleep_counter} mins elapsed.")
+            sleep_counter += 1
+        else:
             disable_resignation_threshold = True if pool_num % 5 == 0 else False
 
             print(f"Pool {pool_num} Started")
