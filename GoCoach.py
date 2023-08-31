@@ -136,6 +136,7 @@ class Coach:
             checkpoint_files = [file for file in os.listdir(self.config["checkpoint_directory"]) if
                                 file.startswith('checkpoint_') and file.endswith('.pth.tar.examples')]
             self.latest_checkpoint = max(checkpoint_files, key=lambda x: int(x.split('_')[1].split('.')[0]))
+            print("Loading checkpoint ", self.latest_checkpoint)
             start_iter = int(self.latest_checkpoint.split('_')[1].split('.')[0]) + 1
             self.loadTrainExamples()
         else:
@@ -387,7 +388,7 @@ class Coach:
         if not os.path.exists(folder):
             os.makedirs(folder)
         filename = os.path.join(folder, self.getCheckpointFile(iteration) + ".examples")
-        with open(filename, "wb+") as f:
+        with open(filename, "wb") as f: #Removed + after wb
             # print('RAM Used before dump (GB):', psutil.virtual_memory()[3] / 1000000000)
             is_error = True
             while is_error:
@@ -396,7 +397,7 @@ class Coach:
                     is_error = False
                 except:
                     is_error = True
-        f.closed
+            f.closed #Indented this by one
 
     def loadTrainExamples(self):
         modelFile = os.path.join(self.config["checkpoint_directory"], self.latest_checkpoint)
@@ -407,16 +408,22 @@ class Coach:
             if r != "y":
                 sys.exit()
         else:
-            print(f"File with trainExamples found. Read it: {examplesFile}")
-            with open(examplesFile, "rb") as f:
-                is_error = True
-                while is_error:
-                    try:
+            if os.path.getsize(examplesFile) > 0:
+                print("File Size: ",  os.path.getsize(examplesFile))
+                print(f"File with trainExamples found. Read it: {examplesFile}")
+                with open(examplesFile, "rb") as f:
+                    is_error = True
+                    while is_error:
+                        #try:
+                        print("Trying pickle")
                         self.trainExamplesHistory = Unpickler(f).load()
                         is_error = False
-                    except:
-                        is_error = True
-            f.closed
+                        """except:
+                            print("Error while pickling")
+                            is_error = True"""
+                    f.closed #Indented this by one 
+            else:
+                print("File is empty")
             # examples based on the model were already collected (loaded)
             self.skipFirstSelfPlay = True
 

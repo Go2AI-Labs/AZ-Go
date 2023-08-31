@@ -11,6 +11,7 @@ except:
     except:
         from go.GoGame import display
 
+import time
 
 class MCTS:
     """
@@ -50,6 +51,7 @@ class MCTS:
 
 
         for i in range(min(int(self.config["num_MCTS_simulations"]), self.smartSimNum)):
+            #print("\n--SIM #", i, "--")
             self.search(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, 1, True, is_self_play)
 
         s = self.game.stringRepresentation(canonicalBoard)
@@ -72,9 +74,9 @@ class MCTS:
                 counts = valids
                 print("MCTS counts & valids error occurred.")
 
+
         if temp == 0:
             bestA = np.argmax(counts)
-
             try:
                 assert (valids[bestA] != 0)
             except:
@@ -143,6 +145,22 @@ class MCTS:
         Returns:
             v: the negative of the value of the current canonicalBoard
         """
+        #print("Call #", calls, ": History length - ", len(canonicalBoard.history), " Is self play - ", is_self_play)
+        
+        #check if both players passed 
+        if len(canonicalBoard.history) > 1:
+            if canonicalBoard.history[-1] is None and canonicalBoard.history[-2] is None:
+                if 1 in player_board[0]:
+                    perspective = 1
+                else:
+                    perspective = -1
+                gameEnd = self.game.getGameEndedArena(canonicalBoard, perspective)
+                #print("Ended sim with back to back passes after ", calls, " calls with reward -- ", gameEnd)
+                if gameEnd != 0:
+                    return -gameEnd
+                else:
+                    return 0
+            
         if calls > 500:
             # print("#### MCTS Recursive Base Case Triggered ####")
             return 1e-4
@@ -220,6 +238,10 @@ class MCTS:
                     best_act = a
 
         a = best_act
+        """if a == 49:
+            print("-------------Passed on call #", calls, "------------------")
+            print("Valids used to pass: ", valids)
+            print("Probs used to pass: ", self.Ps[s])"""
         assert (valids[a] != 0)
         # print("in MCTS.search, need next search, shifting player from 1")
 

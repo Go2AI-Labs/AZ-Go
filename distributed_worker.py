@@ -83,12 +83,7 @@ def worker_loop(identifier, disable_resignation_threshold):
     neural_network = nn(game, config)
 
     # Load recent model into nnet
-    while True:
-        try:
-            neural_network.load_checkpoint(sensitive_config["distributed_models_directory"], 'best.pth.tar')
-            break
-        except:
-            time.sleep(300)
+    neural_network.load_checkpoint(sensitive_config["distributed_models_directory"], 'best.pth.tar')
     # print("Done loading model")
 
     # print(f"Starting game {iter_num}...")
