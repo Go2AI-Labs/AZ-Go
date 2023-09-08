@@ -104,7 +104,11 @@ class Coach:
             sym = self.game.getSymmetries(canonicalHistory, pi)
             for b, p in sym:
                 trainExamples.append([b, self.curPlayer, p, None])
-            action = np.random.choice(len(pi), p=pi)
+
+            if episodeStep < self.config["temperature_threshold"]:
+                action = np.random.choice(len(pi), p=pi)
+            else:
+                action = np.argmax(pi)
 
             board, self.curPlayer = self.game.getNextState(board, self.curPlayer, action)
             if self.config["display"] == 1:
