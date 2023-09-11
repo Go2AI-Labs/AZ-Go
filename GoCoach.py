@@ -56,12 +56,11 @@ class Coach:
             with open("sensitive.yaml", "r") as stream:
                 try:
                     self.sensitive_config = yaml.safe_load(stream)
-                    print(self.sensitive_config)
-
+                    # print(self.sensitive_config)
                 except yaml.YAMLError as exc:
                     raise ValueError(exc)
 
-    def executeEpisode(self):
+    def executeEpisode(self, disable_resignation_threshold=False):
         """
         This function executes one episode of self-play, starting with player 1.
         As the game is played, each turn is added as a training example to
@@ -87,6 +86,7 @@ class Coach:
         for i in range(8):
             x_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
             y_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
+
         while True:
             episodeStep += 1
             if self.config["display"] == 1:
@@ -99,19 +99,23 @@ class Coach:
                                                                                  canonicalBoard.pieces, player_board)
             # print(canonicalHistory)
             temp = int(episodeStep < self.config["temperature_threshold"])
-            pi = self.mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, temp=temp)
+            pi = self.mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, True, temp=temp)
             # get different symmetries/rotations of the board
             sym = self.game.getSymmetries(canonicalHistory, pi)
             for b, p in sym:
                 trainExamples.append([b, self.curPlayer, p, None])
-            action = np.random.choice(len(pi), p=pi)
+
+            if episodeStep < self.config["temperature_threshold"]:
+                action = np.random.choice(len(pi), p=pi)
+            else:
+                action = np.argmax(pi)
 
             board, self.curPlayer = self.game.getNextState(board, self.curPlayer, action)
             if self.config["display"] == 1:
                 print("BOARD updated:")
                 # display(board)
                 print(display(board))
-            r, score = self.game.getGameEnded(board.copy(), self.curPlayer, returnScore=True)
+            r, score = self.game.getGameEndedSelfPlay(board.copy(), self.curPlayer, returnScore=True, disable_resignation_threshold=disable_resignation_threshold)
             if r != 0:
                 if self.config["display"] == 1:
                     print("Current episode ends, {} wins with score b {}, W {}.".format('Black' if r == -1 else 'White',
@@ -136,6 +140,7 @@ class Coach:
             checkpoint_files = [file for file in os.listdir(self.config["checkpoint_directory"]) if
                                 file.startswith('checkpoint_') and file.endswith('.pth.tar.examples')]
             self.latest_checkpoint = max(checkpoint_files, key=lambda x: int(x.split('_')[1].split('.')[0]))
+            print("Loading checkpoint ", self.latest_checkpoint)
             start_iter = int(self.latest_checkpoint.split('_')[1].split('.')[0]) + 1
             self.loadTrainExamples()
         else:
@@ -219,7 +224,7 @@ class Coach:
                             total_time += round(end_time - start_time, 2)
                             status_bar(eps + 1, self.config["num_polling_games"],
                                        title="Polling Games", label="Games",
-                                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time, 2) / (eps + 1)} | Total: {round(total_time, 2)}")
+                                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / (eps + 1), 2)} | Total: {round(total_time, 2)}")
 
                         # after polling games are played, check drive and download as many "new" files as possible
                         num_downloads = self.scan_examples_folder_and_load(
@@ -261,7 +266,7 @@ class Coach:
                         total_time += round(end_time - start_time, 2)
                         status_bar(self.currentEpisode, self.config["num_self_play_episodes"],
                                    title="Self Play", label="Games",
-                                   suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time, 2) / self.currentEpisode} | Total: {round(total_time, 2)}")
+                                   suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / (self.currentEpisode), 2)} | Total: {round(total_time, 2)}")
 
                     games_played_during_iteration = self.config["num_self_play_episodes"]
 
@@ -274,27 +279,6 @@ class Coach:
             counts_file.write(
                 f"\n Number of games added to train examples during iteration #{i}: {games_played_during_iteration} games\n")
             counts_file.close()
-
-            # # read trainExamples from local disk and use them for NN training
-            # if i != 1 or self.config["load_model"]:
-            #     new_train_examples = self.iterationTrainExamples
-            #
-            #     # update pathing
-            #     checkpoint_dir = f'logs/go/{self.NetType}_MCTS_SimModified_checkpoint/{self.game.getBoardSize()[0]}/'
-            #     checkpoint_files = [file for file in os.listdir(checkpoint_dir) if
-            #                         file.startswith('checkpoint_') and file.endswith('.pth.tar.examples')]
-            #     latest_checkpoint = max(checkpoint_files, key=lambda x: int(x.split('_')[1].split('.')[0]))
-            #     self.args.load_folder_file = [
-            #         f'logs/go/{self.NetType}_MCTS_SimModified_checkpoint/{self.game.getBoardSize()[0]}/',
-            #         latest_checkpoint]
-            #
-            #     self.loadTrainExamples()
-            #
-            #     self.trainExamplesHistory.append(new_train_examples)
-            # else:
-            #     # save the iteration examples to the history
-            #     if not self.skipFirstSelfPlay:
-            #         self.trainExamplesHistory.append(self.iterationTrainExamples)
 
             # save the iteration examples to the history
             if not self.skipFirstSelfPlay:
@@ -328,11 +312,6 @@ class Coach:
 
             trainLog = self.nnet.train(trainExamples)
 
-            # clear trainExamples after they are used
-            # self.trainExamplesHistory = []
-            # self.iterationTrainExamples.clear()
-            # trainExamples.clear()
-
             self.p_loss_per_iteration.append(np.average(trainLog['P_LOSS'].to_numpy()))
             self.v_loss_per_iteration.append(np.average(trainLog['V_LOSS'].to_numpy()))
             trainLog.to_csv(self.config["train_logs_directory"] + '/ITER_{}_TRAIN_LOG.csv'.format(i))
@@ -342,8 +321,8 @@ class Coach:
             nmcts = MCTS(self.game, self.nnet, self.config)
 
             print('\nPITTING AGAINST PREVIOUS VERSION')
-            arena = Arena(lambda x, y, z, a, b: np.argmax(pmcts.getActionProb(x, y, z, a, b, temp=0)),
-                          lambda x, y, z, a, b: np.argmax(nmcts.getActionProb(x, y, z, a, b, temp=0)), self.game,
+            arena = Arena(lambda x, y, z, a, b, c: np.argmax(pmcts.getActionProb(x, y, z, a, b, c, temp=0)),
+                          lambda x, y, z, a, b, c: np.argmax(nmcts.getActionProb(x, y, z, a, b, c, temp=0)), self.game,
                           self.config)
             pwins, nwins, draws, outcomes = arena.playGames(self.config["num_arena_episodes"])
             self.winRate.append(nwins / self.config["num_arena_episodes"])
@@ -387,7 +366,7 @@ class Coach:
         if not os.path.exists(folder):
             os.makedirs(folder)
         filename = os.path.join(folder, self.getCheckpointFile(iteration) + ".examples")
-        with open(filename, "wb+") as f:
+        with open(filename, "wb") as f: #Removed + after wb
             # print('RAM Used before dump (GB):', psutil.virtual_memory()[3] / 1000000000)
             is_error = True
             while is_error:
@@ -396,7 +375,7 @@ class Coach:
                     is_error = False
                 except:
                     is_error = True
-        f.closed
+            f.closed #Indented this by one
 
     def loadTrainExamples(self):
         modelFile = os.path.join(self.config["checkpoint_directory"], self.latest_checkpoint)
@@ -407,16 +386,22 @@ class Coach:
             if r != "y":
                 sys.exit()
         else:
-            print(f"File with trainExamples found. Read it: {examplesFile}")
-            with open(examplesFile, "rb") as f:
-                is_error = True
-                while is_error:
-                    try:
+            if os.path.getsize(examplesFile) > 0:
+                print("File Size: ",  os.path.getsize(examplesFile))
+                print(f"File with trainExamples found. Read it: {examplesFile}")
+                with open(examplesFile, "rb") as f:
+                    is_error = True
+                    while is_error:
+                        #try:
+                        print("Trying pickle")
                         self.trainExamplesHistory = Unpickler(f).load()
                         is_error = False
-                    except:
-                        is_error = True
-            f.closed
+                        """except:
+                            print("Error while pickling")
+                            is_error = True"""
+                    f.closed #Indented this by one 
+            else:
+                print("File is empty")
             # examples based on the model were already collected (loaded)
             self.skipFirstSelfPlay = True
 

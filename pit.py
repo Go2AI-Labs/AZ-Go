@@ -46,7 +46,7 @@ CNN=nn(g,t='CNN')
 CNN.load_checkpoint('./HistoryLog/Go/C_checkpoint/{}/'.format(BoardSize),'checkpoint_4.pth.tar')
 CNNArgs = dotdict({'numMCTSSims': 250, 'cpuct':3.0})
 CNNMCTS = MCTS(g, CNN, CNNArgs)
-CNNPlayer = lambda x: np.argmax(CNNMCTS.getActionProb(x, temp=0))
+CNNPlayer = lambda x: np.argmax(CNNMCTS.getActionProb(x,,)
 
 arena = Arena.Arena(ResPlayer, CNNPlayer, g, display=display)
 

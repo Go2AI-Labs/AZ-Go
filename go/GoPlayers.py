@@ -7,7 +7,7 @@ class RandomPlayer():
 
     def play(self, board):
         a = np.random.randint(self.game.getActionSize())
-        valids = self.game.getValidMoves(board, 1)
+        valids = self.game.getValidMoves(board, 1, True)
         while valids[a]!=1:
             a = np.random.randint(self.game.getActionSize())
         return a
@@ -19,7 +19,7 @@ class HumanGoPlayer():
 
     def play(self, board):
         # display(board)
-        valid = self.game.getValidMoves(board, 1)
+        valid = self.game.getValidMoves(board, 1, True)
         for i in range(len(valid)):
             if valid[i]:
                 print(int(i/self.game.n), int(i%self.game.n))
@@ -41,7 +41,7 @@ class GreedyGoPlayer():
         self.game = game
 
     def play(self, board):
-        valids = self.game.getValidMoves(board, 1)
+        valids = self.game.getValidMoves(board, 1, True)
         candidates = []
         for a in range(self.game.getActionSize()):
             if valids[a]==0:

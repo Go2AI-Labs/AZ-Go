@@ -47,7 +47,7 @@ class Arena:
         for i in range(8):
             x_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
             y_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
-        while self.game.getGameEnded(board, curPlayer) == 0:
+        while self.game.getGameEndedArena(board, curPlayer) == 0:
             it += 1
             if verbose:
                 score = self.game.getScore(board)
@@ -61,27 +61,27 @@ class Arena:
             canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(x_boards, y_boards,
                                                                                  canonicalBoard.pieces, player_board)
             # print("History used to make move: ", canonicalHistory)
-            action = players[curPlayer + 1](canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, )
+            action = players[curPlayer + 1](canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, False)
             player_name = "B" if curPlayer == 1 else "W"
             action_history.append(f";{player_name}[{self.game.action_space_to_GTP(action)}]")
 
-            valids = self.game.getValidMoves(self.game.getCanonicalForm(board, curPlayer), 1)
+            valids = self.game.getValidMoves(self.game.getCanonicalForm(board, curPlayer), 1, True)
 
-            if valids[action] == 0:
-                print(action)
+            # if valids[action] == 0:
+                # print(action)
                 # assert valids[action] >0
             board, curPlayer = self.game.getNextState(board, curPlayer, action)
             x_boards, y_boards = y_boards, x_boards
 
         if verbose:
             # assert(self.display)
-            r, score = self.game.getGameEnded(board, 1, returnScore=True)
+            r, score = self.game.getGameEndedArena(board, 1, returnScore=True)
 
             if self.config["display"] == 1:
                 print("\nGame over: Turn ", str(it), "Result ", str(r))
                 print(display(board))
                 print(f"Final score: b {score[0]}, W {score[1]}\n")
-        return self.game.getGameEnded(board, 1), action_history
+        return self.game.getGameEndedArena(board, 1), action_history
 
     def playGames(self, num, verbose=True):
         """
@@ -124,7 +124,7 @@ class Arena:
             total_time += round(end_time - start_time, 2)
             status_bar(eps, maxeps,
                        title="Arena", label="Games",
-                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time, 2) / eps} | Total: {round(total_time, 2)}")
+                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / eps, 2)} | Total: {round(total_time, 2)}")
 
 
         self.player1, self.player2 = self.player2, self.player1
@@ -150,6 +150,6 @@ class Arena:
             total_time += round(end_time - start_time, 2)
             status_bar(eps, maxeps,
                        title="Arena", label="Games",
-                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time, 2) / eps} | Total: {round(total_time, 2)}")
+                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / eps, 2)} | Total: {round(total_time, 2)}")
 
         return oneWon, twoWon, draws, outcomes

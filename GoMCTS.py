@@ -11,6 +11,7 @@ except:
     except:
         from go.GoGame import display
 
+import time
 
 class MCTS:
     """
@@ -38,7 +39,7 @@ class MCTS:
         self.Es = {}  # stores game.getGameEnded ended for board s
         self.Vs = {}  # stores game.getValidMoves for board s
 
-    def getActionProb(self, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, temp=1):
+    def getActionProb(self, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, is_self_play, temp=1):
         """
         This function performs numMCTSSims simulations of MCTS starting from
         canonicalBoard.
@@ -48,13 +49,15 @@ class MCTS:
                    proportional to Nsa[(s,a)]**(1./temp)
         """
 
+
         for i in range(min(int(self.config["num_MCTS_simulations"]), self.smartSimNum)):
-            self.search(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, 1)
+            #print("\n--SIM #", i, "--")
+            self.search(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, 1, True, is_self_play)
 
         s = self.game.stringRepresentation(canonicalBoard)
 
         counts = np.array([self.Nsa[(s, a)] if (s, a) in self.Nsa else 0 for a in range(self.game.getActionSize())])
-        valids = self.game.getValidMoves(canonicalBoard, player=1)
+        valids = self.game.getValidMoves(canonicalBoard, player=1, is_self_play=is_self_play)
         self.smartSimNum = 10 * (np.count_nonzero(valids))
 
         # if np.sum(counts) == 0:
@@ -71,9 +74,9 @@ class MCTS:
                 counts = valids
                 print("MCTS counts & valids error occurred.")
 
+
         if temp == 0:
             bestA = np.argmax(counts)
-
             try:
                 assert (valids[bestA] != 0)
             except:
@@ -123,7 +126,7 @@ class MCTS:
 
         return probs * valids
 
-    def search(self, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, calls):
+    def search(self, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, calls, is_root, is_self_play):
         """
         This function performs one iteration of MCTS. It is recursively called
         till a leaf node is found. The action chosen at each node is one that
@@ -142,6 +145,22 @@ class MCTS:
         Returns:
             v: the negative of the value of the current canonicalBoard
         """
+        #print("Call #", calls, ": History length - ", len(canonicalBoard.history), " Is self play - ", is_self_play)
+        
+        #check if both players passed 
+        if len(canonicalBoard.history) > 1:
+            if canonicalBoard.history[-1] is None and canonicalBoard.history[-2] is None:
+                if 1 in player_board[0]:
+                    perspective = 1
+                else:
+                    perspective = -1
+                gameEnd = self.game.getGameEndedArena(canonicalBoard, perspective)
+                #print("Ended sim with back to back passes after ", calls, " calls with reward -- ", gameEnd)
+                if gameEnd != 0:
+                    return -gameEnd
+                else:
+                    return 0
+            
         if calls > 500:
             # print("#### MCTS Recursive Base Case Triggered ####")
             return 1e-4
@@ -155,7 +174,7 @@ class MCTS:
             #print("leaf node")
             self.Ps[s], v = self.nnet.predict(canonicalHistory) #changed from board.pieces
 
-            valids = self.game.getValidMoves(canonicalBoard, 1)
+            valids = self.game.getValidMoves(canonicalBoard, 1, is_self_play)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
             if sum_Ps_s > 0:
@@ -178,7 +197,8 @@ class MCTS:
             else:
                 perspective = -1
 
-            gameEnd = self.game.getGameEnded(canonicalBoard, perspective)
+            # do not use score threshold in MCTS
+            gameEnd = self.game.getGameEndedArena(canonicalBoard, perspective)
             if gameEnd != 0:
                 return -gameEnd
 
@@ -188,20 +208,40 @@ class MCTS:
         cur_best = -float('inf')
         best_act = -1
 
+        #print("Valids in MCTS: ", valids)
         # pick the action with the highest upper confidence bound
+        #add noise for root node prior probabilities (encourages exploration)
+        if is_root and is_self_play:
+            noise = np.random.dirichlet([0.03] * len(self.game.filter_valid_moves(valids)))
+
+        i = -1
         for a in range(self.game.getActionSize()):
             if valids[a] != 0:
+                i += 1
                 if (s, a) in self.Qsa and self.Qsa[(s, a)] != None:
-                    u = self.Qsa[(s, a)] + self.config["c_puct"] * self.Ps[s][a] * math.sqrt(self.Ns[s]) / (
-                                1 + self.Nsa[(s, a)])
+                    q = self.Qsa[(s, a)]
+                    n_sa = self.Nsa[(s, a)]
+                    """u = self.Qsa[(s, a)] + self.config["c_puct"] * self.Ps[s][a] * math.sqrt(self.Ns[s]) / (
+                                1 + self.Nsa[(s, a)])"""
                 else:
-                    u = self.config["c_puct"] * self.Ps[s][a] * math.sqrt(self.Ns[s])  # Q = 0 ?
+                    q = 0
+                    n_sa = 0
+                    #u = self.config["c_puct"] * self.Ps[s][a] * math.sqrt(self.Ns[s])  # Q = 0 ?
 
+                p = self.Ps[s][a]
+                #add noise for root node prior probabilities (encourages exploration)
+                if is_root and is_self_play:
+                    p = (1-0.25) * p + 0.25 * noise[i]
+                u = q + self.config["c_puct"] * p * math.sqrt(self.Ns[s]) / (1 + n_sa)
                 if u > cur_best:
                     cur_best = u
                     best_act = a
 
         a = best_act
+        """if a == 49:
+            print("-------------Passed on call #", calls, "------------------")
+            print("Valids used to pass: ", valids)
+            print("Probs used to pass: ", self.Ps[s])"""
         assert (valids[a] != 0)
         # print("in MCTS.search, need next search, shifting player from 1")
 
@@ -213,20 +253,32 @@ class MCTS:
             # print("###############在search内部节点出现错误：###########")
             # display(canonicalBoard)
             # print("action:{},valids:{},Vs:{}".format(a,valids,self.Vs[s]))
-            valids = self.game.getValidMoves(canonicalBoard, 1)
+            valids = self.game.getValidMoves(canonicalBoard, 1, is_self_play)
             self.Vs[s] = valids
             cur_best = -float('inf')
             best_act = -1
 
-            # pick the action with the highest upper confidence bound
+            if is_root and is_self_play:
+                noise = np.random.dirichlet([0.03] * len(self.game.filter_valid_moves(valids)))
+
+            i = -1
             for a in range(self.game.getActionSize()):
                 if valids[a] != 0:
+                    i += 1
                     if (s, a) in self.Qsa and self.Qsa[(s, a)] != None:
-                        u = self.Qsa[(s, a)] + self.config["c_puct"] * self.Ps[s][a] * math.sqrt(self.Ns[s]) / (
-                                    1 + self.Nsa[(s, a)])
+                        q = self.Qsa[(s, a)]
+                        n_sa = self.Nsa[(s, a)]
+                        """u = self.Qsa[(s, a)] + self.config["c_puct"] * self.Ps[s][a] * math.sqrt(self.Ns[s]) / (
+                                    1 + self.Nsa[(s, a)])"""
                     else:
-                        u = self.config["c_puct"] * self.Ps[s][a] * math.sqrt(self.Ns[s])  # Q = 0 ?
+                        q = 0
+                        n_sa = 0
+                        #u = self.config["c_puct"] * self.Ps[s][a] * math.sqrt(self.Ns[s])  # Q = 0 ?
 
+                    p = self.Ps[s][a]
+                    if is_root and is_self_play:
+                        p = (1-0.25) * p + 0.25 * noise[i]
+                    u = q + self.config["c_puct"] * p * math.sqrt(self.Ns[s]) / (1 + n_sa)
                     if u > cur_best:
                         cur_best = u
                         best_act = a
@@ -248,7 +300,7 @@ class MCTS:
         calls += 1
         x_boards, y_boards = y_boards, x_boards
         
-        v = self.search(next_s, canonicalHistory, x_boards, y_boards, player_board, calls)
+        v = self.search(next_s, canonicalHistory, x_boards, y_boards, player_board, calls, False, is_self_play)
         
 
         if (s, a) in self.Qsa:

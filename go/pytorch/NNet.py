@@ -33,14 +33,8 @@ class NNetWrapper(NeuralNet):
         if self.netType == 'RES':
             netMkr = NetMaker(game)
             self.nnet = netMkr.makeNet()
-            # self.nnet = nn.DataParallel(self.nnet)
-            # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            # self.nnet.to(device)
         else:
             self.nnet = GoNNet(game, self.config)
-            # self.nnet = nn.DataParallel(self.nnet)
-            # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            # self.nnet.to(device)
 
         self.board_x, self.board_y = game.getBoardSize()
         self.action_size = game.getActionSize()
@@ -54,10 +48,8 @@ class NNetWrapper(NeuralNet):
         """
 
         if self.config["optimizer_type"] == "Adam":
-            print("Adam used.")
             optimizer = optim.Adam(self.nnet.parameters(), lr=self.config["learning_rate"], weight_decay=5e-4)
         elif self.config["optimizer_type"] == "SGD":
-            print("SGD used.")
             optimizer = optim.SGD(self.nnet.parameters(), lr=self.config["learning_rate"], momentum=0.9)
         else:
             raise KeyError(f"Optimizer type '{self.config['optimizer_type']}' is not supported. Please check config.yaml for supported optimizer types.")
