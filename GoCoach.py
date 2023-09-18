@@ -606,4 +606,6 @@ class Coach:
         files = glob.glob(self.sensitive_config["distributed_examples_directory"] + "*")
 
         for f in files:
-            os.remove(f)
+            # remove everything but the .txt file needed to track iteration number
+            if not f.endswith("txt"):
+                os.remove(f)

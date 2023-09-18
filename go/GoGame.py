@@ -96,8 +96,6 @@ class GoGame(Game):
             # iteration 31 and higher
             max_moves = 98
 
-        print(max_moves)
-
         # limit games to 98 moves, determine winner based on score of current board
         if len(board.history) >= max_moves:
             if score_black > score_white:
