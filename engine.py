@@ -92,16 +92,13 @@ def generate_move(color):
         curPlayer = -1
 
     canonicalBoard = game.getCanonicalForm(board, curPlayer)
-    # canonicalBoard = g.getCanonicalForm(board, curPlayer)
-    # find empty random square
-    # action = np.argmax(mcts.getActionProb(canonicalBoard, temp=0))
 
     # make move on board
-    # board, curPlayer = g.getNextState(board, curPlayer, action)
     player_board = (c_boards[0], c_boards[1]) if curPlayer == 1 else (c_boards[1], c_boards[0])
 
     # Generate a move based on most recent board state
-    action = np.argmax(mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, temp=0))
+    action = np.argmax(
+        mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, False, temp=0))
     # Perform the move
     board, curPlayer = game.getNextState(board, curPlayer, action)
 
@@ -127,8 +124,6 @@ def play(command):
     global board, curPlayer, x_boards, y_boards, c_boards, canonicalHistory
     # parse color
     curPlayer = 1 if command.split()[1] == 'B' else -1
-
-    canonicalBoard = game.getCanonicalForm(board, curPlayer)
 
     player_idx = command.find(" ") + 1
     move_idx = command.find(" ", player_idx) + 1
@@ -195,12 +190,7 @@ def gtp():
         elif 'quit' in command:
             sys.exit()
         else:
-            print('=\n')  # skip currently unsupported commands
-
-        r = game.getGameEnded(board.copy(), curPlayer)
-        if r != 0:
-            print('= pass\n')
-            print('= pass\n')
+            print('=\n')  # skip unsupported commands
 
 
 gtp()
