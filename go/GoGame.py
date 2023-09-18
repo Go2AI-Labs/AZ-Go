@@ -76,13 +76,30 @@ class GoGame(Game):
     #   - A move threshold (7 x 7 x 2 = 98)
     #   - Both players passing
     # Self play uses Tromp-Taylor rules (todo)
-    def getGameEndedSelfPlay(self, board, player, returnScore=False, disable_resignation_threshold=False):
+    def getGameEndedSelfPlay(self, board, player, iteration, returnScore=False, disable_resignation_threshold=False):
         winner = 0
         (score_black, score_white) = self.getScore(board)
         by_score = 0.5 * (board.n * board.n + board.komi)
 
+        # determine maximum number of allowed moves
+        max_moves = 0
+        if iteration < 11:
+            # iteration 1 to 10
+            max_moves = 25
+        elif iteration < 21:
+            # iteration 11 to 20
+            max_moves = 50
+        elif iteration < 31:
+            # iteration 21 to 30
+            max_moves = 75
+        else:
+            # iteration 31 and higher
+            max_moves = 98
+
+        print(max_moves)
+
         # limit games to 98 moves, determine winner based on score of current board
-        if len(board.history) >= 98:
+        if len(board.history) >= max_moves:
             if score_black > score_white:
                 if player == 1:
                     winner = 1

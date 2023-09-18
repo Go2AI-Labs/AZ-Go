@@ -60,7 +60,7 @@ class Coach:
                 except yaml.YAMLError as exc:
                     raise ValueError(exc)
 
-    def executeEpisode(self, disable_resignation_threshold=False):
+    def executeEpisode(self, iteration, disable_resignation_threshold=False):
         """
         This function executes one episode of self-play, starting with player 1.
         As the game is played, each turn is added as a training example to
@@ -115,7 +115,7 @@ class Coach:
                 print("BOARD updated:")
                 # display(board)
                 print(display(board))
-            r, score = self.game.getGameEndedSelfPlay(board.copy(), self.curPlayer, returnScore=True, disable_resignation_threshold=disable_resignation_threshold)
+            r, score = self.game.getGameEndedSelfPlay(board.copy(), self.curPlayer, iteration=iteration, returnScore=True, disable_resignation_threshold=disable_resignation_threshold)
             if r != 0:
                 if self.config["display"] == 1:
                     print("Current episode ends, {} wins with score b {}, W {}.".format('Black' if r == -1 else 'White',
@@ -174,7 +174,7 @@ class Coach:
                     for eps in range(first_iteration_num_games):
                         start_time = time.time()
                         self.mcts = MCTS(self.game, self.nnet, self.config)  # reset search tree
-                        self.iterationTrainExamples += self.executeEpisode()
+                        self.iterationTrainExamples += self.executeEpisode(iteration=i)
 
                         # update bar print out
                         end_time = time.time()
@@ -217,7 +217,7 @@ class Coach:
                         for eps in range(self.config["num_polling_games"]):
                             start_time = time.time()
                             self.mcts = MCTS(self.game, self.nnet, self.config)
-                            self.iterationTrainExamples += self.executeEpisode()
+                            self.iterationTrainExamples += self.executeEpisode(iteration=i)
                             games_played_during_iteration += 1
 
                             end_time = time.time()
@@ -260,7 +260,7 @@ class Coach:
 
                         self.mcts = MCTS(self.game, self.nnet, self.config)  # reset search tree
                         self.currentEpisode = eps + 1
-                        self.iterationTrainExamples += self.executeEpisode()
+                        self.iterationTrainExamples += self.executeEpisode(iteration=i)
 
                         end_time = time.time()
                         total_time += round(end_time - start_time, 2)
@@ -349,6 +349,10 @@ class Coach:
                     self.send_model_to_server()
                     upload_number += 1
                     self.wipe_examples_folder()
+
+            if self.config["enable_distributed_training"]:
+                # tell the worker server what iteration training is on
+                self.send_training_updates_to_server(i)
 
             pd.DataFrame(data=iterHistory).to_csv(self.config["train_logs_directory"] + '/ITER_LOG.csv')
 
@@ -564,6 +568,17 @@ class Coach:
         scp = SCPClient(ssh.get_transport())
         scp.put(local_path, self.sensitive_config["distributed_models_directory"])
         print("New model uploaded.")
+
+    def send_training_updates_to_server(self, iteration):
+        with open(f'{self.config["checkpoint_directory"]}/training_update.txt', 'w') as f:
+            f.write(str(iteration))
+
+        local_path = os.path.join(self.config["checkpoint_directory"], 'training_update.txt')
+        ssh = self.createSSHClient(self.sensitive_config["worker_server_address"], 22,
+                                   self.sensitive_config["worker_username"], self.sensitive_config["worker_password"])
+        scp = SCPClient(ssh.get_transport())
+        scp.put(local_path, self.sensitive_config["distributed_models_directory"])
+        print("Training update file uploaded.")
 
     def scan_examples_folder_and_load(self, game_limit):
         files = glob.glob(self.sensitive_config["distributed_examples_directory"] + "*")

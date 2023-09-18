@@ -15,7 +15,7 @@ from go.pytorch.NNet import NNetWrapper as nn
 from GoCoach import Coach
 
 
-def learn(game, nnet, config, identifier, disable_resignation_threshold):
+def learn(game, nnet, config, identifier, iteration, disable_resignation_threshold):
     """
     Performs numIters iterations with numEps episodes of self-play in each
     iteration. After every iteration, it retrains neural network with
@@ -31,7 +31,7 @@ def learn(game, nnet, config, identifier, disable_resignation_threshold):
 
     for eps in range(config["num_games_per_distributed_batch"]):
         coach = Coach(game, nnet, config)
-        iterationTrainExamples += coach.executeEpisode(disable_resignation_threshold=disable_resignation_threshold)
+        iterationTrainExamples += coach.executeEpisode(iteration=iteration, disable_resignation_threshold=disable_resignation_threshold)
 
     # save the generated train examples in their own file
     trainExamplesHistory.append(iterationTrainExamples)
@@ -76,7 +76,17 @@ with open("sensitive.yaml", "r") as stream:
         raise ValueError(exc)
 
 
-def worker_loop(identifier, disable_resignation_threshold):
+def determine_iteration():
+    with open(f'{sensitive_config["distributed_models_directory"]}/training_update.txt', "r") as stream:
+        try:
+            iteration = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            raise ValueError(exc)
+
+    return int(iteration)
+
+
+def worker_loop(identifier, iteration, disable_resignation_threshold):
     game = Game(config["board_size"])
     neural_network = nn(game, config)
 
@@ -87,7 +97,7 @@ def worker_loop(identifier, disable_resignation_threshold):
     # print(f"Starting game {iter_num}...")
     print(f"Starting game on process: {identifier}")
     # Generate training examples
-    new_train_examples = learn(game=game, nnet=neural_network, config=config, identifier=identifier, disable_resignation_threshold=disable_resignation_threshold)
+    new_train_examples = learn(game=game, nnet=neural_network, config=config, identifier=identifier, iteration=iteration, disable_resignation_threshold=disable_resignation_threshold)
 
     print(f"Game complete on process {identifier}. Sending examples to {sensitive_config['main_server_address']}")
     # where is the file located on local machine
@@ -114,12 +124,15 @@ if __name__ == "__main__":
         else:
             disable_resignation_threshold = True if pool_num % 5 == 0 else False
 
-            print(f"Pool {pool_num} Started")
+            # load information file from server
+            iteration = determine_iteration()
+
+            print(f"Pool {pool_num} Started, Training at Iteration {iteration}")
 
             # create and configure the process pool
             with mp.Pool(config["num_parallel_games"]) as pool:
                 for i in range(config["num_parallel_games"]):
-                    pool.apply_async(worker_loop, args=(i, disable_resignation_threshold,))
+                    pool.apply_async(worker_loop, args=(i, iteration, disable_resignation_threshold,))
 
                 pool.close()
                 pool.join()
