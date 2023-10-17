@@ -20,6 +20,7 @@ from training.arena import Arena
 from mcts import MCTS
 from go.go_game import display
 # from utils.status_bar import StatusBar
+from utils.config_handler import ConfigHandler
 
 
 class Coach:
@@ -40,7 +41,6 @@ class Coach:
         self.p_loss_per_iteration = []
         self.v_loss_per_iteration = []
         self.winRate = []
-        self.currentEpisode = 0
         self.iterationTrainExamples = deque([], maxlen=self.config["max_length_of_queue"])
 
         self.date_time = datetime.now().strftime("%d-%m-%Y %H")
@@ -53,78 +53,69 @@ class Coach:
 
         # if needed, import sensitive_config
         if config["enable_distributed_training"]:
-            with open("sensitive.yaml", "r") as stream:
-                try:
-                    self.sensitive_config = yaml.safe_load(stream)
-                    # print(self.sensitive_config)
-                except yaml.YAMLError as exc:
-                    raise ValueError(exc)
+            self.sensitive_config = ConfigHandler("sensitive.yaml")
 
     def executeEpisode(self, iteration, disable_resignation_threshold=False):
         """
         This function executes one episode of self-play, starting with player 1.
         As the game is played, each turn is added as a training example to
-        trainExamples. The game is played till the game ends. After the game
+        game_train_examples. The game is played till the game ends. After the game
         ends, the outcome of the game is used to assign values to each example
-        in trainExamples.
+        in game_train_examples.
 
         It uses a temp=1 if episodeStep < tempThreshold, and thereafter
         uses temp=0.
 
         Returns:
-            trainExamples: a list of examples of the form (canonicalBoard,pi,v)
+            game_train_examples: a list of examples of the form (canonicalBoard,pi,v)
                            pi is the MCTS informed policy vector, v is +1 if
                            the player eventually won the game, else -1.
         """
-        trainExamples = []
+        game_train_examples = []
         board = self.game.getInitBoard()
         self.curPlayer = 1
-        episodeStep = 0
-        x_boards = []
-        y_boards = []
+        episodeStep = 0   
         c_boards = [np.ones((7, 7)), np.zeros((7, 7))]
-        for i in range(8):
-            x_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
-            y_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
-
-        while True:
+        x_boards, y_boards = self.game.init_x_y_boards()
+        r = 0
+        
+        while r == 0:
+            x_boards, y_boards = y_boards, x_boards
             episodeStep += 1
             if self.config["display"] == 1:
-                print("================Episode {} Step:{}=====CURPLAYER:{}==========".format(self.currentEpisode,
-                                                                                             episodeStep,
-                                                                                             "White" if self.curPlayer == -1 else "Black"))
+                print("================Episode Playing Step:{}=====CURPLAYER:{}==========".format(episodeStep,
+                                                                                                "White" if self.curPlayer == -1 else "Black"))  
+            #Get the current board, current player's board, and game history at current state
             canonicalBoard = self.game.getCanonicalForm(board, self.curPlayer)
             player_board = (c_boards[0], c_boards[1]) if self.curPlayer == 1 else (c_boards[1], c_boards[0])
-            canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(x_boards, y_boards,
-                                                                                 canonicalBoard.pieces, player_board)
-            # print(canonicalHistory)
+            canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(x_boards, y_boards, canonicalBoard.pieces, player_board)
+            #set temperature variable and get move probabilities 
             temp = int(episodeStep < self.config["temperature_threshold"])
             pi = self.mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, True, temp=temp)
             # get different symmetries/rotations of the board
             sym = self.game.getSymmetries(canonicalHistory, pi)
             for b, p in sym:
-                trainExamples.append([b, self.curPlayer, p, None])
-
+                game_train_examples.append([b, self.curPlayer, p, None])
+            #choose a move
             if episodeStep < self.config["temperature_threshold"]:
                 action = np.random.choice(len(pi), p=pi)
             else:
                 action = np.argmax(pi)
-
-            board, self.curPlayer = self.game.getNextState(board, self.curPlayer, action)
+            #play the chosen move 
+            board, self.curPlayer = self.game.getNextState(board, self.curPlayer, action) 
             if self.config["display"] == 1:
                 print("BOARD updated:")
-                # display(board)
-                print(display(board))
+                print(display(board))    
+            #get current game result
             r, score = self.game.getGameEndedSelfPlay(board.copy(), self.curPlayer, iteration=iteration, returnScore=True, disable_resignation_threshold=disable_resignation_threshold)
-            if r != 0:
-                if self.config["display"] == 1:
-                    print("Current episode ends, {} wins with score b {}, W {}.".format('Black' if r == -1 else 'White',
-                                                                                        score[0], score[1]))
-
-                return [(x[0], x[2], r * ((-1) ** (x[1] != self.curPlayer))) for x in trainExamples]
-            elif r == 0 and self.config["display"] == 1:
-                print(f"Current score: b {score[0]}, W {score[1]}")
-            x_boards, y_boards = y_boards, x_boards
+            if self.config["display"] == 1:
+                print(f"Current score: b {score[0]}, W {score[1]}")           
+            
+            
+        if self.config["display"] == 1:
+            print("Current episode ends, {} wins with score b {}, W {}.".format('Black' if r == -1 else 'White', score[0], score[1]))
+        #return game result 
+        return [(x[0], x[2], r * ((-1) ** (x[1] != self.curPlayer))) for x in game_train_examples]
 
     def learn(self):
         """
@@ -137,21 +128,14 @@ class Coach:
         iterHistory = {'ITER': [], 'ITER_DETAIL': [], 'PITT_RESULT': []}
 
         if self.config["load_model"]:
-            checkpoint_files = [file for file in os.listdir(self.config["checkpoint_directory"]) if
-                                file.startswith('checkpoint_') and file.endswith('.pth.tar.examples')]
-            self.latest_checkpoint = max(checkpoint_files, key=lambda x: int(x.split('_')[1].split('.')[0]))
-            print("Loading checkpoint ", self.latest_checkpoint)
-            start_iter = int(self.latest_checkpoint.split('_')[1].split('.')[0]) + 1
-            self.loadTrainExamples()
+            self.load_model()
+            self.load_losses()
         else:
             start_iter = 1
 
         # helper distributed variables
         upload_number = 1
         new_model_accepted_in_previous_iteration = False
-
-        if self.config["load_model"]:
-            self.loadLosses()
 
         # training loop
         for i in range(start_iter, self.config["num_iterations"] + 1):
@@ -165,31 +149,13 @@ class Coach:
                     first_iteration_num_games = int(self.config["num_self_play_episodes"] / 20)
 
                     # on first iteration, play X games, so a model can be updated to lambda
-                    print(
-                        f"First iteration. Play {first_iteration_num_games} self play games, so there is a model to upload to lambda.")
+                    print(f"First iteration. Play {first_iteration_num_games} self play games, so there is a model to upload to lambda.")
 
                     self.iterationTrainExamples = deque([], maxlen=self.config["max_length_of_queue"])
-
-                    total_time = 0
-                    for eps in range(first_iteration_num_games):
-                        start_time = time.time()
-                        self.mcts = MCTS(self.game, self.nnet, self.config)  # reset search tree
-                        self.iterationTrainExamples += self.executeEpisode(iteration=i)
-
-                        # update bar print out
-                        end_time = time.time()
-                        total_time += round(end_time - start_time, 2)
-                        if eps == 0:
-                            status_bar(eps + 1, first_iteration_num_games,
-                                       title="1st Iter Games", label="Games",
-                                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time, 2)} | Total: {round(total_time, 2)}")
-                        else:
-                            status_bar(eps + 1, first_iteration_num_games,
-                                       title="1st Iter Games", label="Games",
-                                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / (eps + 1), 2)} | Total: {round(total_time, 2)}")
-
-                    games_played_during_iteration = first_iteration_num_games
-
+                    #play self play games 
+                    games_played_during_iteration = self.play_games(first_iteration_num_games, 
+                                                                    "1st Iter Games", games_played_during_iteration, i)
+                    
                 else:
                     self.iterationTrainExamples = deque([], maxlen=self.config["max_length_of_queue"])
 
@@ -197,50 +163,33 @@ class Coach:
                         # download most recent training examples from the drive (until numEps is hit or files run out)
                         # previous examples are still valid training data
                         print("New model not accepted in previous iteration. Downloading from lambda.")
-                        games_played_during_iteration += self.scan_examples_folder_and_load(
-                            game_limit=self.config["num_self_play_episodes"])
+                        games_played_during_iteration += self.scan_examples_folder_and_load(game_limit=self.config["num_self_play_episodes"])
                         status_bar(games_played_during_iteration, self.config["num_self_play_episodes"],
                                    title="Lambda Downloaded Games", label="Games")
-
                     else:
                         print("New model accepted in previous iteration. Start polling games.")
-
-                    if games_played_during_iteration >= self.config["num_self_play_episodes"]:
-                        status_bar(games_played_during_iteration, self.config["num_self_play_episodes"],
-                                   title="Self Play + Distributed Training", label="Games")
 
                     polling_tracker = 1
                     while games_played_during_iteration < self.config["num_self_play_episodes"]:
                         # play games and download from drive until limit is reached
                         print(f"Starting polling session #{polling_tracker}.")
-                        total_time = 0
-                        for eps in range(self.config["num_polling_games"]):
-                            start_time = time.time()
-                            self.mcts = MCTS(self.game, self.nnet, self.config)
-                            self.iterationTrainExamples += self.executeEpisode(iteration=i)
-                            games_played_during_iteration += 1
-
-                            end_time = time.time()
-                            total_time += round(end_time - start_time, 2)
-                            status_bar(eps + 1, self.config["num_polling_games"],
-                                       title="Polling Games", label="Games",
-                                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / (eps + 1), 2)} | Total: {round(total_time, 2)}")
-
+                        
+                        #Play self play games
+                        games_played_during_iteration = self.play_games(self.config["num_polling_games"], 
+                                                                        "Polling Games", games_played_during_iteration, i)
+                
                         # after polling games are played, check drive and download as many "new" files as possible
                         num_downloads = self.scan_examples_folder_and_load(
                             game_limit=self.config["num_self_play_episodes"] - games_played_during_iteration)
-                        if self.config["num_self_play_episodes"] - games_played_during_iteration != 0:
-                            status_bar(num_downloads,
-                                       self.config["num_self_play_episodes"] - games_played_during_iteration,
-                                       title="Lambda Downloaded Games", label="Games")
-
+                        
+                        status_bar(num_downloads,
+                                    self.config["num_self_play_episodes"] - games_played_during_iteration,
+                                    title="Lambda Downloaded Games", label="Games")
                         print()
 
                         games_played_during_iteration += num_downloads
-
                         status_bar(games_played_during_iteration, self.config["num_self_play_episodes"],
                                    title="Self Play + Distributed Training", label="Games")
-
                         polling_tracker += 1
 
                         # spacers to ensure bar printouts are correct
@@ -251,50 +200,17 @@ class Coach:
                 if not self.skipFirstSelfPlay or i > start_iter:
                     # normal (non-distributed) training loop
                     print(f"######## Iteration {i} Episode Play ########")
-
                     self.iterationTrainExamples = deque([], maxlen=self.config["max_length_of_queue"])
-
-                    total_time = 0
-                    for eps in range(self.config["num_self_play_episodes"]):
-                        start_time = time.time()
-
-                        self.mcts = MCTS(self.game, self.nnet, self.config)  # reset search tree
-                        self.currentEpisode = eps + 1
-                        self.iterationTrainExamples += self.executeEpisode(iteration=i)
-
-                        end_time = time.time()
-                        total_time += round(end_time - start_time, 2)
-                        status_bar(self.currentEpisode, self.config["num_self_play_episodes"],
-                                   title="Self Play", label="Games",
-                                   suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / (self.currentEpisode), 2)} | Total: {round(total_time, 2)}")
-
-                    games_played_during_iteration = self.config["num_self_play_episodes"]
-
+                    #Play self play games 
+                    games_played_during_iteration = self.play_games(self.config["num_self_play_episodes"], 
+                                                                    "Self Play", games_played_during_iteration, i)
+                    
+                    
             # Log how many games were added during each iteration
-            file_name = self.config["train_logs_directory"] + "/Game_Counts.txt"
-            if not os.path.isfile(file_name):
-                counts_file = open(file_name, 'w')
-                counts_file.close()
-            counts_file = open(file_name, 'a')
-            counts_file.write(
-                f"\n Number of games added to train examples during iteration #{i}: {games_played_during_iteration} games\n")
-            counts_file.close()
+            self.log_game_counts(i, games_played_during_iteration)
 
-            # save the iteration examples to the history
-            if not self.skipFirstSelfPlay:
-                self.trainExamplesHistory.append(self.iterationTrainExamples)
-
-            # prune trainExamples to meet config recommendation
-            while len(self.trainExamplesHistory) > self.config["max_num_iterations_in_train_example_history"]:
-                print(
-                    f"Truncated trainExamplesHistory to {len(self.trainExamplesHistory)}. Length exceeded config limit.")
-                self.trainExamplesHistory.pop(0)
-
-            # prune trainExamples to meet ram requirement
-            ramCap = self.config["ram_cap"]
-            while int(psutil.virtual_memory()[3] / 1000000000) > ramCap and len(self.trainExamplesHistory) > 13:
-                print(f"Truncated trainExamplesHistory to {len(self.trainExamplesHistory)}. Length exceeded ram limit.")
-                self.trainExamplesHistory.pop(0)
+            #Add new games to self.trainExamplesHistory and prune examples as needed
+            self.update_train_examples_history()
 
             # backup history to a file
             # NB! the examples were collected using the model from the previous iteration, so (i-1)
@@ -362,8 +278,48 @@ class Coach:
 
         pd.DataFrame(data=iterHistory).to_csv(self.config["train_logs_directory"] + '/ITER_LOG.csv')
 
+    def play_games(self, loop_iters, title, games_played_during_iteration, iteration_num):
+        game_count = games_played_during_iteration
+        total_time = 0
+        for eps in range(loop_iters):
+            start_time = time.time()      
+            self.mcts = MCTS(self.game, self.nnet, self.config)
+            self.iterationTrainExamples += self.executeEpisode(iteration=iteration_num)
+            
+            game_count += 1
+            end_time = time.time()
+            total_time += round(end_time - start_time, 2)
+            status_bar(eps + 1, loop_iters,
+                        title=title, label="Games",
+                        suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / (eps + 1), 2)} | Total: {round(total_time, 2)}")
+        return game_count
+    
+    def update_train_examples_history(self):
+        # save the iteration examples to the history
+        if not self.skipFirstSelfPlay:
+            self.trainExamplesHistory.append(self.iterationTrainExamples)
+        # prune trainExamples to meet config recommendation
+        while len(self.trainExamplesHistory) > self.config["max_num_iterations_in_train_example_history"]:
+            print(
+                f"Truncated trainExamplesHistory to {len(self.trainExamplesHistory)}. Length exceeded config limit.")
+            self.trainExamplesHistory.pop(0)
+        # prune trainExamples to meet ram requirement
+        ramCap = self.config["ram_cap"]
+        while int(psutil.virtual_memory()[3] / 1000000000) > ramCap and len(self.trainExamplesHistory) > 13:
+            print(f"Truncated trainExamplesHistory to {len(self.trainExamplesHistory)}. Length exceeded ram limit.")
+            self.trainExamplesHistory.pop(0)
+    
     def getCheckpointFile(self, iteration):
         return 'checkpoint_' + str(iteration) + '.pth.tar'
+    
+    def load_model(self):
+        checkpoint_files = [file for file in os.listdir(self.config["checkpoint_directory"]) if
+                                file.startswith('checkpoint_') and file.endswith('.pth.tar.examples')]
+        self.latest_checkpoint = max(checkpoint_files, key=lambda x: int(x.split('_')[1].split('.')[0]))
+        print("Loading checkpoint: ", self.latest_checkpoint)
+        start_iter = int(self.latest_checkpoint.split('_')[1].split('.')[0]) + 1
+        self.loadTrainExamples()
+        return checkpoint_files, start_iter
 
     def saveTrainExamples(self, iteration):
         folder = self.config["checkpoint_directory"]
@@ -459,7 +415,7 @@ class Coach:
                     is_error = True
         f.closed
 
-    def loadLosses(self):
+    def load_losses(self):
         # Load in ploss, vloss, and winRates from previous iterations so graphs are consistent
         vlossFile = os.path.join(self.config["graph_directory"], "vlosses")
         plossFile = os.path.join(self.config["graph_directory"], "plosses")
@@ -498,6 +454,17 @@ class Coach:
                         is_error = True
             f.closed
 
+    def log_game_counts(self, iter_num, games_played):
+        file_name = self.config["train_logs_directory"] + "/Game_Counts.txt"
+        if not os.path.isfile(file_name):
+            counts_file = open(file_name, 'w')
+            counts_file.close()
+        counts_file = open(file_name, 'a')
+        counts_file.write(
+            f"\n Number of games added to train examples during iteration #{iter_num}: {games_played} games\n")
+        counts_file.close()
+        
+        
     # plot/save v/p loss after training
     # plot/save Arena Play Win Rates after arena
     def saveTrainingPlots(self):

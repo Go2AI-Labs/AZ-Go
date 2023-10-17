@@ -4,12 +4,14 @@ import numpy as np
 
 from go.game import Game
 from go.go_logic import Board
+from utils.config_handler import ConfigHandler
 
 
 class GoGame(Game):
     def __init__(self, n=19):
         super().__init__()
         self.n = n
+        self.config = ConfigHandler("config.yaml")
 
     def getInitBoard(self):
         # return initial board (numpy board)
@@ -300,6 +302,15 @@ class GoGame(Game):
         history.append(player_board[0])
         history.append(player_board[1])
         return history, x_boards, y_boards
+    
+    def init_x_y_boards(self):
+        x_boards = []
+        y_boards = []
+        for i in range(8):
+            x_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
+            y_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
+            
+        return x_boards, y_boards
 
 
 def display(board):
