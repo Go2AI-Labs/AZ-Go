@@ -5,6 +5,7 @@ import time
 from collections import deque
 import dill
 from dill import Pickler, Unpickler
+import random
 from random import shuffle
 from datetime import datetime
 
@@ -91,11 +92,19 @@ class Coach:
             canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(x_boards, y_boards, canonicalBoard.pieces, player_board)
             #set temperature variable and get move probabilities 
             temp = int(episodeStep < self.config["temperature_threshold"])
-            pi = self.mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, True, temp=temp)
-            # get different symmetries/rotations of the board
-            sym = self.game.getSymmetries(canonicalHistory, pi)
-            for b, p in sym:
-                game_train_examples.append([b, self.curPlayer, p, None])
+            
+            if random.random() <= 0.25:
+                num_sims = self.config["num_full_search_sims"]
+                use_noise = True
+            else:
+                num_sims = self.config["num_fast_search_sims"]
+                use_noise = False
+            pi = self.mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, use_noise, num_sims, temp=temp)
+            # get different symmetries/rotations of the board if full search was done 
+            if num_sims == self.config["num_full_search_sims"]:
+                sym = self.game.getSymmetries(canonicalHistory, pi)
+                for b, p in sym:
+                    game_train_examples.append([b, self.curPlayer, p, None])
             #choose a move
             if episodeStep < self.config["temperature_threshold"]:
                 action = np.random.choice(len(pi), p=pi)
@@ -237,9 +246,9 @@ class Coach:
             nmcts = MCTS(self.game, self.nnet, self.config)
 
             print('\nPITTING AGAINST PREVIOUS VERSION')
-            arena = Arena(lambda x, y, z, a, b, c: np.argmax(pmcts.getActionProb(x, y, z, a, b, c, temp=0)),
-                          lambda x, y, z, a, b, c: np.argmax(nmcts.getActionProb(x, y, z, a, b, c, temp=0)), self.game,
-                          self.config)
+            arena = Arena(lambda x, y, z, a, b, c, d: np.argmax(pmcts.getActionProb(x, y, z, a, b, c, d, temp=0)),
+                          lambda x, y, z, a, b, c, d: np.argmax(nmcts.getActionProb(x, y, z, a, b, c, d, temp=0)), 
+                          self.game, self.config)
             pwins, nwins, draws, outcomes = arena.playGames(self.config["num_arena_episodes"])
             self.winRate.append(nwins / self.config["num_arena_episodes"])
             self.saveLosses()

@@ -31,7 +31,7 @@ class MCTS:
         self.Es = {}  # stores game.getGameEnded ended for board s
         self.Vs = {}  # stores game.getValidMoves for board s
 
-    def getActionProb(self, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, is_self_play, temp=1):
+    def getActionProb(self, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, is_self_play, num_sims, temp=1):
         """
         This function performs numMCTSSims simulations of MCTS starting from
         canonicalBoard.
@@ -40,8 +40,9 @@ class MCTS:
             probs: a policy vector where the probability of the ith action is
                    proportional to Nsa[(s,a)]**(1./temp)
         """
-
-        for i in range(min(int(self.config["num_MCTS_simulations"]), self.smartSimNum)):
+        #removed min(num_MCTS_sims, smartsimnum)
+        print("Num mcts sims = ", num_sims)
+        for i in range(num_sims):
             # print("\n--SIM #", i, "--")
             self.search(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, 1, True, is_self_play)
 
@@ -135,7 +136,7 @@ class MCTS:
         Returns:
             v: the negative of the value of the current canonicalBoard
         """
-        # print("Call #", calls, ": History length - ", len(canonicalBoard.history), " Is self play - ", is_self_play)
+        #print("Call #", calls, ": History length - ", len(canonicalBoard.history), " Is self play - ", is_self_play)
 
         # check if both players passed
         if len(canonicalBoard.history) > 1:
@@ -152,7 +153,7 @@ class MCTS:
                     return 0
 
         if calls > 500:
-            # print("#### MCTS Recursive Base Case Triggered ####")
+            print("#### MCTS Recursive Base Case Triggered ####")
             return 1e-4
 
         if calls > 1:
@@ -163,7 +164,7 @@ class MCTS:
         s = self.game.stringRepresentation(canonicalBoard)
 
         if s not in self.Ps:
-            # print("leaf node")
+            #print("leaf node")
             self.Ps[s], v = self.nnet.predict(canonicalHistory)  # changed from board.pieces
 
             valids = self.game.getValidMoves(canonicalBoard, 1, is_self_play)

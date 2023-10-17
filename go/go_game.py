@@ -78,7 +78,7 @@ class GoGame(Game):
         by_score = 0.5 * (board.n * board.n + board.komi)
 
         # determine maximum number of allowed moves
-        max_moves = 0
+        """max_moves = 0
         if iteration < 11:
             # iteration 1 to 10
             max_moves = 25
@@ -88,9 +88,9 @@ class GoGame(Game):
         elif iteration < 31:
             # iteration 21 to 30
             max_moves = 75
-        else:
+        else:"""
             # iteration 31 and higher
-            max_moves = 98
+        max_moves = 98
 
         # limit games to 98 moves, determine winner based on score of current board
         if len(board.history) >= max_moves:
