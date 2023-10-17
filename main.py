@@ -1,20 +1,16 @@
 import os
 import sys
-from GoCoach import Coach
-from go.GoGame import GoGame as Game
-from go.pytorch.NNet import NNetWrapper as nn
-import yaml
+
+from go.go_game import GoGame as Game
+from neural_network.neural_net_wrapper import NNetWrapper as NNetWrapper
+from training.coach import Coach
+from utils.config_handler import ConfigHandler
 
 sys.setrecursionlimit(5000)
 
 if __name__ == "__main__":
 
-    with open("config.yaml", "r") as stream:
-        try:
-            config = yaml.safe_load(stream)
-            print(config)
-        except yaml.YAMLError as exc:
-            raise ValueError(exc)
+    config = ConfigHandler("config.yaml")
 
     # create logs subdirectories
     if not os.path.exists(config["checkpoint_directory"]):
@@ -27,7 +23,7 @@ if __name__ == "__main__":
         os.makedirs(config["train_logs_directory"])
 
     game = Game(config["board_size"])
-    neural_network = nn(game, config)
+    neural_network = NNetWrapper(game, config)
 
     if config["load_model"]:
         # if you are loading a checkpoint created from a model without DataParallel
