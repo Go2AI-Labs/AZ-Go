@@ -1,31 +1,16 @@
-import os
 import sys
 
 import numpy as np
-import yaml
 
 from go.go_game import GoGame as Game
 from go.go_game import display
 from mcts import MCTS
 from neural_network.neural_net_wrapper import NNetWrapper as NNetWrapper
 from training.coach import Coach
+from utils.config_handler import ConfigHandler
+from utils.path_handler import resource_path
 
-
-def resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath("..")
-
-    return os.path.join(base_path, relative_path)
-
-
-with open(resource_path("../configs/config.yaml"), "r") as stream:
-    try:
-        config = yaml.safe_load(stream)
-        # print(config)
-    except yaml.YAMLError as exc:
-        raise ValueError(exc)
+config = ConfigHandler("config.yaml")
 
 VERSION = '1.0'
 

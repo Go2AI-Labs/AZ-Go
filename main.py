@@ -10,7 +10,7 @@ sys.setrecursionlimit(5000)
 
 if __name__ == "__main__":
 
-    config = ConfigHandler("config.yaml")
+    config = ConfigHandler("AZ-Go/config.yaml")
 
     # create logs subdirectories
     if not os.path.exists(config["checkpoint_directory"]):

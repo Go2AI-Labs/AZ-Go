@@ -41,7 +41,6 @@ class MCTS:
                    proportional to Nsa[(s,a)]**(1./temp)
         """
         #removed min(num_MCTS_sims, smartsimnum)
-        print("Num mcts sims = ", num_sims)
         for i in range(num_sims):
             # print("\n--SIM #", i, "--")
             self.search(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, 1, True, is_self_play)
@@ -153,7 +152,7 @@ class MCTS:
                     return 0
 
         if calls > 500:
-            print("#### MCTS Recursive Base Case Triggered ####")
+            # print("#### MCTS Recursive Base Case Triggered ####")
             return 1e-4
 
         if calls > 1:
