@@ -19,8 +19,8 @@ from utils.config_handler import ConfigHandler
 class DistributedWorker:
 
     def __init__(self):
-        self.config = ConfigHandler("config.yaml")
-        self.sensitive_config = ConfigHandler("sensitive.yaml")
+        self.config = ConfigHandler("AZ-Go/config.yaml")
+        self.sensitive_config = ConfigHandler("AZ-Go/sensitive.yaml")
 
     def learn(self, game, nnet, config, identifier, iteration, disable_resignation_threshold):
         """
