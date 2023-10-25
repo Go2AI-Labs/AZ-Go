@@ -54,7 +54,7 @@ class Coach:
 
         # if needed, import sensitive_config
         if config["enable_distributed_training"]:
-            self.sensitive_config = ConfigHandler("sensitive.yaml")
+            self.sensitive_config = ConfigHandler("AZ-Go/sensitive.yaml")
 
     def executeEpisode(self, iteration, disable_resignation_threshold=False):
         """
@@ -166,7 +166,7 @@ class Coach:
                 print(f"##### Iteration {i} Distributed Training #####")
 
                 if i == 1 and not self.config["load_model"]:
-                    first_iteration_num_games = int(self.config["num_self_play_episodes"] / 20)
+                    first_iteration_num_games = int(self.config["num_self_play_episodes"] / 120)
 
                     # on first iteration, play X games, so a model can be updated to lambda
                     print(
