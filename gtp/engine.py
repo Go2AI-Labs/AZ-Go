@@ -17,7 +17,7 @@ VERSION = '1.0'
 game = Game(config["board_size"])
 neural_network = NNetWrapper(game, config)
 
-neural_network.load_checkpoint("", "model.tar", cpu_only=True)
+neural_network.load_checkpoint("", resource_path("model.tar"), cpu_only=True)
 
 coach = Coach(game, neural_network, config)
 
