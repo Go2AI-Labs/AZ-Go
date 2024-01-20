@@ -13,6 +13,7 @@ from neural_network.neural_net import NeuralNet
 from pytorch_classification.utils import Bar, AverageMeter
 from .go_alphanet import AlphaNetMaker as NetMaker
 from .go_neural_net import GoNNet
+import matplotlib.pyplot as plt
 
 sys.path.append('../')
 
@@ -36,6 +37,8 @@ class NNetWrapper(NeuralNet):
         if torch.cuda.is_available():
             self.nnet.cuda()
 
+        self.lrs = []
+
     def train(self, examples):
         """
         examples: list of examples, each example is of form (board, pi, v)
@@ -44,7 +47,11 @@ class NNetWrapper(NeuralNet):
         if self.config["optimizer_type"] == "Adam":
             optimizer = optim.Adam(self.nnet.parameters(), lr=self.config["learning_rate"], weight_decay=5e-4)
         elif self.config["optimizer_type"] == "SGD":
-            optimizer = optim.SGD(self.nnet.parameters(), lr=self.config["learning_rate"], momentum=0.9)
+            if self.config["use_cosine_annealing"]:
+                optimizer = optim.SGD(self.nnet.parameters(), lr=self.config["max_learning_rate"], momentum=0.9)
+                scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=self.config['min_learning_rate'], last_epoch=-1)
+            else:
+                optimizer = optim.SGD(self.nnet.parameters(), lr=self.config["learning_rate"], momentum=0.9)
         else:
             raise KeyError(
                 f"Optimizer type '{self.config['optimizer_type']}' is not supported. Please check config.yaml for supported optimizer types.")
@@ -104,6 +111,13 @@ class NNetWrapper(NeuralNet):
                 total_loss.backward()
                 optimizer.step()
 
+                """
+                # update learning rate with each batch if using cosine annealing
+                if self.config["use_cosine_annealing"]:
+                    scheduler.step(epoch + batch_idx / (int(len(examples) / self.config["batch_size"])))
+                    self.lrs.append(optimizer.param_groups[0]["lr"])
+                """
+
                 # measure elapsed time
                 batch_time.update(time.time() - end)
                 end = time.time()
@@ -126,10 +140,29 @@ class NNetWrapper(NeuralNet):
 
                 bar.next()
 
+            # update learning rate each epoch when using cosine annealing
+            if self.config["use_cosine_annealing"]:
+                scheduler.step(epoch + batch_idx / (int(len(examples) / self.config["batch_size"])))
+                self.lrs.append(optimizer.param_groups[0]["lr"])
+
+                
+                
             # plot avg pi loss and v loss for all epochs in iteration
             trainLog['P_LOSS'].append(pi_losses.avg)
             trainLog['V_LOSS'].append(v_losses.avg)
             bar.finish()
+
+        """
+        #Code to see how learning rates change with each epoch/batch when 
+        # using cosine annealing
+        if self.config["use_cosine_annealing"]:
+            print(f"\n\nLength of learning rates: {len(self.lrs)}")
+            plt.close()
+            plt.plot(self.lrs)
+            graph_name = f"test_{len(self.lrs)}.png"
+            plt.savefig(graph_name)
+            plt.close()
+        """
 
         return pd.DataFrame(data=trainLog)
 
