@@ -87,8 +87,11 @@ class Arena:
 
     def playGames(self, num, verbose=True):
         """
-        Plays num games in which player1 starts num/2 games and player2 starts
-        num/2 games.
+        Plays up to num games in which player1 and player2
+        alternate which one starts each game.
+
+        Will continue playing up to num games until one of 
+        the players has won enough games to meet the threshold.  
 
         Returns:
             oneWon: games won by player1
@@ -108,17 +111,28 @@ class Arena:
 
         outcomes = []
 
-        for _ in range(num):
+        threshold = maxeps * (self.config['acceptance_threshold'])
+        for i in range(maxeps):
+            print(f"------Playing game #{i+1}------")
             start_time = time.time()
 
             gameResult, action_history = self.playGame(verbose=verbose)
             outcomes.append(action_history)
-            if gameResult == 1:
-                oneWon += 1
-            elif gameResult == -1:
-                twoWon += 1
+
+            if (i%2) == 0:
+                if gameResult == 1:
+                    oneWon += 1
+                elif gameResult == -1:
+                    twoWon += 1
+                else:
+                    draws += 1
             else:
-                draws += 1
+                if gameResult == -1:
+                    oneWon += 1
+                elif gameResult == 1:
+                    twoWon += 1
+                else:
+                    draws += 1
 
             eps += 1
 
@@ -127,31 +141,13 @@ class Arena:
             status_bar(eps, maxeps,
                        title="Arena", label="Games",
                        suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / eps, 2)} | Total: {round(total_time, 2)}")
+            
+            #If one of the models meets the threshold for games won AND there is more than 1 game left to play, return from arena play
+            if (oneWon >= threshold or twoWon >= threshold) and i < (maxeps-2):
+                print(f"\nEnded after {i+1} games\nOne Won: {oneWon} || Two Won: {twoWon} || One %: {oneWon/50} || Two %: {twoWon/50}")
+                return oneWon, twoWon, draws, outcomes
 
-        self.player1, self.player2 = self.player2, self.player1
-
-        if (originalNum % 2 == 1):
-            num += 1
-
-        for _ in range(num):
-            start_time = time.time()
-
-            gameResult, action_history = self.playGame(verbose=verbose)
-            outcomes.append(action_history)
-            if gameResult == -1:
-                oneWon += 1
-            elif gameResult == 1:
-                twoWon += 1
-            else:
-                draws += 1
-
-            eps += 1
-
-            end_time = time.time()
-            total_time += round(end_time - start_time, 2)
-            status_bar(eps, maxeps,
-                       title="Arena", label="Games",
-                       suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / eps, 2)} | Total: {round(total_time, 2)}")
+            self.player1, self.player2 = self.player2, self.player1
 
         return oneWon, twoWon, draws, outcomes
 
