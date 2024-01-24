@@ -15,13 +15,13 @@ import pandas as pd
 import paramiko
 import psutil
 import yaml
-from scp import SCPClient
 
 from training.arena import Arena
 from mcts import MCTS
 from go.go_game import display
 # from utils.status_bar import StatusBar
 from utils.config_handler import ConfigHandler
+from definitions import SENS_CONFIG_PATH, DIS_EXAMPLE_PATH
 
 
 class Coach:
@@ -54,7 +54,7 @@ class Coach:
 
         # if needed, import sensitive_config
         if config["enable_distributed_training"]:
-            self.sensitive_config = ConfigHandler("AZ-Go/sensitive.yaml")
+            self.sensitive_config = ConfigHandler(SENS_CONFIG_PATH)
 
     def executeEpisode(self, iteration, disable_resignation_threshold=False):
         """
@@ -273,9 +273,9 @@ class Coach:
                 iterHistory['PITT_RESULT'].append('R')
                 self.nnet.load_checkpoint(folder=self.config["checkpoint_directory"], filename='temp.pth.tar')
                 if i == 1 and self.config["enable_distributed_training"] and not self.config["load_model"]:
+                    # when running distributed training, save first model, so the workers have something to use
                     new_model_accepted_in_previous_iteration = True
                     self.nnet.save_checkpoint(folder=self.config["checkpoint_directory"], filename='best.pth.tar')
-                    self.send_model_to_server()
 
             else:
                 print('ACCEPTING NEW MODEL')
@@ -285,7 +285,6 @@ class Coach:
                                           filename=self.getCheckpointFile(i))
                 self.nnet.save_checkpoint(folder=self.config["checkpoint_directory"], filename='best.pth.tar')
                 if self.config["enable_distributed_training"]:
-                    self.send_model_to_server()
                     upload_number += 1
                     self.wipe_examples_folder()
 
@@ -294,9 +293,9 @@ class Coach:
             with open(f'{self.config["checkpoint_directory"]}/training_update.txt', 'w') as f:
                 f.write(str(i))
 
-            if self.config["enable_distributed_training"]:
-                # tell the worker server what iteration training is on
-                self.send_training_updates_to_server(i)
+            # if self.config["enable_distributed_training"]:
+            #     # tell the worker server what iteration training is on
+            #     self.send_training_updates_to_server(i)
 
             pd.DataFrame(data=iterHistory).to_csv(self.config["train_logs_directory"] + '/ITER_LOG.csv')
 
@@ -558,24 +557,24 @@ class Coach:
         return client
 
     # doesn't currently rename the file... which I think is fine
-    def send_model_to_server(self):
-        local_path = os.path.join(self.config["checkpoint_directory"], 'best.pth.tar')
-        ssh = self.createSSHClient(self.sensitive_config["worker_server_address"], 22,
-                                   self.sensitive_config["worker_username"], self.sensitive_config["worker_password"])
-        scp = SCPClient(ssh.get_transport())
-        scp.put(local_path, self.sensitive_config["distributed_models_directory"])
-        print("New model uploaded.")
+    # def send_model_to_server(self):
+    #     local_path = os.path.join(self.config["checkpoint_directory"], 'best.pth.tar')
+    #     ssh = self.createSSHClient(self.sensitive_config["worker_server_address"], 22,
+    #                                self.sensitive_config["worker_username"], self.sensitive_config["worker_password"])
+    #     scp = SCPClient(ssh.get_transport())
+    #     scp.put(local_path, self.sensitive_config["distributed_models_directory"])
+    #     print("New model uploaded.")
 
-    def send_training_updates_to_server(self, iteration):
-        local_path = os.path.join(self.config["checkpoint_directory"], 'training_update.txt')
-        ssh = self.createSSHClient(self.sensitive_config["worker_server_address"], 22,
-                                   self.sensitive_config["worker_username"], self.sensitive_config["worker_password"])
-        scp = SCPClient(ssh.get_transport())
-        scp.put(local_path, self.sensitive_config["distributed_models_directory"])
-        print("Training update file uploaded.")
+    # def send_training_updates_to_server(self, iteration):
+    #     local_path = os.path.join(self.config["checkpoint_directory"], 'training_update.txt')
+    #     ssh = self.createSSHClient(self.sensitive_config["worker_server_address"], 22,
+    #                                self.sensitive_config["worker_username"], self.sensitive_config["worker_password"])
+    #     scp = SCPClient(ssh.get_transport())
+    #     scp.put(local_path, self.sensitive_config["distributed_models_directory"])
+    #     print("Training update file uploaded.")
 
     def scan_examples_folder_and_load(self, game_limit):
-        files = glob.glob(self.sensitive_config["distributed_examples_directory"] + "*")
+        files = glob.glob(DIS_EXAMPLE_PATH + "*")
 
         game_count = 0
 
@@ -597,12 +596,10 @@ class Coach:
         return game_count
 
     def wipe_examples_folder(self):
-        files = glob.glob(self.sensitive_config["distributed_examples_directory"] + "*")
+        files = glob.glob(DIS_EXAMPLE_PATH + "*")
 
         for f in files:
-            # remove everything but the .txt file needed to track iteration number
-            if not f.endswith("txt"):
-                os.remove(f)
+            os.remove(f)
 
 
 # TODO: replace this with the StatusBar class, temp for compatibility

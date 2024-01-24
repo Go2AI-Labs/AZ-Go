@@ -17,7 +17,7 @@ slur*
 /.pydevprojectgit
 logs
 .idea
-sensitive.yaml
+configs/sensitive.yaml
 engine.spec
 model.tar
 build

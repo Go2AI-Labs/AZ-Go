@@ -9,8 +9,9 @@ from neural_network.neural_net_wrapper import NNetWrapper as NNetWrapper
 from training.coach import Coach
 from utils.config_handler import ConfigHandler
 from utils.path_handler import resource_path
+from definitions import CONFIG_PATH
 
-config = ConfigHandler("config.yaml")
+config = ConfigHandler(CONFIG_PATH)
 
 VERSION = '1.0'
 
@@ -81,9 +82,11 @@ def generate_move(color):
     # make move on board
     player_board = (c_boards[0], c_boards[1]) if curPlayer == 1 else (c_boards[1], c_boards[0])
 
+    num_sims = config["num_full_search_sims"]
+
     # Generate a move based on most recent board state
     action = np.argmax(
-        mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, False, temp=0))
+        mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, False, num_sims, temp=0))
     # Perform the move
     board, curPlayer = game.getNextState(board, curPlayer, action)
 

@@ -5,12 +5,13 @@ from go.go_game import GoGame as Game
 from neural_network.neural_net_wrapper import NNetWrapper as NNetWrapper
 from training.coach import Coach
 from utils.config_handler import ConfigHandler
+from definitions import CONFIG_PATH, DIS_EXAMPLE_PATH
 
 sys.setrecursionlimit(5000)
 
 if __name__ == "__main__":
 
-    config = ConfigHandler("AZ-Go/config.yaml")
+    config = ConfigHandler(CONFIG_PATH)
 
     # create logs subdirectories
     if not os.path.exists(config["checkpoint_directory"]):
@@ -21,6 +22,8 @@ if __name__ == "__main__":
         os.makedirs(config["graph_directory"])
     if not os.path.exists(config["train_logs_directory"]):
         os.makedirs(config["train_logs_directory"])
+    if not os.path.exists(DIS_EXAMPLE_PATH):
+        os.makedirs(DIS_EXAMPLE_PATH)
 
     game = Game(config["board_size"])
     neural_network = NNetWrapper(game, config)
