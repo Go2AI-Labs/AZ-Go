@@ -2,15 +2,13 @@ import os
 from collections import deque
 from datetime import datetime
 
-import dill
-from dill import Pickler
-
 from training.coach import Coach
 from go.go_game import GoGame as Game
 from neural_network.neural_net_wrapper import NNetWrapper as nn
 from utils.config_handler import ConfigHandler
 from definitions import CONFIG_PATH, SENS_CONFIG_PATH, DIS_MODEL_PATH, DIS_EXAMPLE_PATH
 from ssh_connector import SSHConnector
+from utils.data_serializer import save_to_disk
 
 """
 The Worker class defines the behavior of a single worker thread used to generate training examples during the 
@@ -26,14 +24,12 @@ class Worker:
         self.sensitive_config = ConfigHandler(SENS_CONFIG_PATH)
         self.connector = SSHConnector()
 
-    def play_game(self, game, nnet, config, identifier, iteration, disable_resignation_threshold):
+    def play_games(self, game, nnet, config, identifier, iteration, disable_resignation_threshold):
         """
-        Plays a single game through "Coach" (reference to training/coach.py) and saves the file locally.
+        Plays a set number of games determined by the "num_games_per_distributed_batch" variable in configs/config.yaml.
+        Uses "Coach" (reference to training/coach.py) and locally saves game data to disk.
         Returns file_name and file_path of the single saved game.
         """
-        dill.settings['recurse'] = True
-        Pickler.settings['recurse'] = True
-
         train_examples_history = []
         iteration_train_examples = deque([], maxlen=config["max_length_of_queue"])
 
@@ -50,8 +46,8 @@ class Worker:
             identifier) + '.pth.tar')
         file_path = os.path.join(DIS_EXAMPLE_PATH, file_name)
 
-        with open(file_path, "wb+") as f:
-            Pickler(f).dump(train_examples_history)
+        # save game data to disk
+        save_to_disk(train_examples_history, file_path)
 
         return file_name, file_path
 
@@ -70,9 +66,9 @@ class Worker:
         print(f"Starting game on process: {identifier}")
 
         # Generate training examples
-        file_name, file_path = self.play_game(game=game, nnet=neural_network, config=self.config, identifier=identifier,
-                                              iteration=iteration,
-                                              disable_resignation_threshold=disable_resignation_threshold)
+        file_name, file_path = self.play_games(game=game, nnet=neural_network, config=self.config, identifier=identifier,
+                                               iteration=iteration,
+                                               disable_resignation_threshold=disable_resignation_threshold)
 
         print(
             f"Game complete on process {identifier}. Sending examples to {self.sensitive_config['master_server_address']}")

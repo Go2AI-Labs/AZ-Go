@@ -1,8 +1,10 @@
 import multiprocessing as mp
+import os
 import time
 
 from ssh_connector import SSHConnector
 from worker import Worker
+from definitions import DIS_EXAMPLE_PATH
 
 """
 Checks for remote model and initializes worker thread(s).
@@ -16,6 +18,10 @@ if __name__ == "__main__":
 
     connector = SSHConnector()
     worker = Worker()
+
+    # ensure DIS_EXAMPLE_PATH exists for game data to be saved to later
+    if not os.path.exists(DIS_EXAMPLE_PATH):
+        os.makedirs(DIS_EXAMPLE_PATH)
 
     while True:
         if connector.download_model():
