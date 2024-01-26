@@ -98,14 +98,19 @@ class MCTS:
 
                 print(counts)
 
+            #Original Code
+            """
             probs = [0 for i in range(len(counts))]
             probs[bestA] = 1
+            """
+            #Get full move "probabilities" instead of masking
+            probs = [x / float(sum(counts)) for x in counts]
 
             for _ in range(self.game.getActionSize()):
                 if probs[_] > 0:
                     assert (valids[_] > 0)
 
-            return probs
+            return probs * valids
 
         counts = [x ** (1. / temp) for x in counts]
         probs = [x / float(sum(counts)) for x in counts]

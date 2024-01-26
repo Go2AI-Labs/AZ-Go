@@ -42,6 +42,7 @@ num_channels: 128
 
 # logging parameters
 checkpoint_directory: logs/checkpoints            # directory where models will be loaded and saved
+examples_directory: logs/train_examples           # directory where iteration train examples will be saved
 game_history_directory: logs/arena_game_history   # directory where arena SGF files will be saved
 graph_directory: logs/graphs                      # directory where loss and win rate graphs will be saved
 train_logs_directory: logs/train_logs             # directory where detailed loss data (CSV) will be saved
