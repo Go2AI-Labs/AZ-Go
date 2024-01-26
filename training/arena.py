@@ -113,7 +113,6 @@ class Arena:
 
         threshold = maxeps * (self.config['acceptance_threshold'])
         for i in range(maxeps):
-            print(f"------Playing game #{i+1}------")
             start_time = time.time()
 
             gameResult, action_history = self.playGame(verbose=verbose)
@@ -145,11 +144,11 @@ class Arena:
             #If one of the models meets the threshold for games won AND there is more than 1 game left to play, return from arena play
             if (oneWon >= threshold or twoWon >= threshold) and i < (maxeps-2):
                 print(f"\nEnded after {i+1} games\nOne Won: {oneWon} || Two Won: {twoWon} || One %: {oneWon/50} || Two %: {twoWon/50}")
-                return oneWon, twoWon, draws, outcomes
+                return oneWon, twoWon, draws, outcomes, (i+1)
 
             self.player1, self.player2 = self.player2, self.player1
 
-        return oneWon, twoWon, draws, outcomes
+        return oneWon, twoWon, draws, outcomes, maxeps
 
 # TODO: replace this with the StatusBar class, temp for compatibility
 def status_bar(step, total_steps, bar_width=45, title="", label="", suffix="", print_perc=True):

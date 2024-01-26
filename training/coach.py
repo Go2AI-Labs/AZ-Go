@@ -237,7 +237,9 @@ class Coach:
 
             # backup history to a file
             # NB! the examples were collected using the model from the previous iteration, so (i-1)
-            self.saveTrainExamples(i - 1)
+            #self.saveTrainExamples(i - 1)
+            self.save_iteration_train_examples(i - 1)
+
             # shuffle examples before training
             trainExamples = []
             for e in self.trainExamplesHistory:
@@ -263,8 +265,8 @@ class Coach:
             arena = Arena(lambda x, y, z, a, b, c, d: np.argmax(pmcts.getActionProb(x, y, z, a, b, c, d, temp=0)),
                           lambda x, y, z, a, b, c, d: np.argmax(nmcts.getActionProb(x, y, z, a, b, c, d, temp=0)),
                           self.game, self.config)
-            pwins, nwins, draws, outcomes = arena.playGames(self.config["num_arena_episodes"])
-            self.winRate.append(nwins / self.config["num_arena_episodes"])
+            pwins, nwins, draws, outcomes, total_played = arena.playGames(self.config["num_arena_episodes"])
+            self.winRate.append(nwins / total_played)
             self.saveLosses()
             print('NEW/PREV WINS : %d / %d ; DRAWS : %d' % (nwins, pwins, draws))
             if pwins + nwins > 0 and float(nwins) / (pwins + nwins) < self.config["acceptance_threshold"]:
@@ -320,6 +322,40 @@ class Coach:
                        title=title, label="Games",
                        suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / (eps + 1), 2)} | Total: {round(total_time, 2)}")
         return game_count
+    
+    def save_iteration_train_examples(self, iteration):
+        folder = self.config["examples_directory"]
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        checkpoint_name = self.getCheckpointFile(iteration) + ".examples"
+        filename = os.path.join(folder, checkpoint_name)
+        with open(filename, "wb") as f:
+            Pickler(f).dump(self.iterationTrainExamples)
+            f.close()
+
+    def load_train_examples_helper(self, filename):
+        with open(filename, "rb") as f:
+            examples = Unpickler(f).load()
+            f.close()
+        return examples
+
+
+    def load_train_examples(self):
+        checkpoint_files = [file for file in os.listdir(self.config["examples_directory"]) if
+                            file.startswith('checkpoint_') and file.endswith('.pth.tar.examples')]
+        checkpoint_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))
+        if len(checkpoint_files) <= self.config['max_num_iterations_in_train_example_history']:
+            for checkpoint in checkpoint_files:
+                temp = self.load_train_examples_helper(checkpoint)
+                self.trainExamplesHistory.append(temp)
+        
+        else: 
+            start = len(checkpoint_files) - self.config['max_num_iterations_in_train_example_history']
+            for checkpoint in checkpoint_files[start:]:
+                temp = self.load_train_examples_helper(checkpoint)
+                self.trainExamplesHistory.append(temp)
+        self.skipFirstSelfPlay = True
+
 
     def update_train_examples_history(self):
         # save the iteration examples to the history
@@ -330,24 +366,22 @@ class Coach:
             self.trainExamplesHistory.pop(0)
             print(
                 f"Truncated trainExamplesHistory to {len(self.trainExamplesHistory)}. Length exceeded config limit.")
-        # prune trainExamples to meet ram requirement
-        ramCap = self.config["ram_cap"]
-        while int(psutil.virtual_memory()[3] / 1000000000) > ramCap and len(self.trainExamplesHistory) > 13:
-            self.trainExamplesHistory.pop(0)
-            print(f"Truncated trainExamplesHistory to {len(self.trainExamplesHistory)}. Length exceeded ram limit.")
+       
 
     def getCheckpointFile(self, iteration):
         return 'checkpoint_' + str(iteration) + '.pth.tar'
 
     def load_model(self):
-        checkpoint_files = [file for file in os.listdir(self.config["checkpoint_directory"]) if
+        checkpoint_files = [file for file in os.listdir(self.config["examples_directory"]) if
                             file.startswith('checkpoint_') and file.endswith('.pth.tar.examples')]
         self.latest_checkpoint = max(checkpoint_files, key=lambda x: int(x.split('_')[1].split('.')[0]))
         print("Loading checkpoint: ", self.latest_checkpoint)
         start_iter = int(self.latest_checkpoint.split('_')[1].split('.')[0]) + 1
-        self.loadTrainExamples()
-        return checkpoint_files, start_iter
+        self.load_train_examples()
+        #self.loadTrainExamples()
+        #return checkpoint_files, start_iter
 
+    """
     def saveTrainExamples(self, iteration):
         folder = self.config["checkpoint_directory"]
         if not os.path.exists(folder):
@@ -363,7 +397,9 @@ class Coach:
                 except:
                     is_error = True
             f.closed  # Indented this by one
+    """
 
+    """
     def loadTrainExamples(self):
         modelFile = os.path.join(self.config["checkpoint_directory"], self.latest_checkpoint)
         examplesFile = modelFile  # + ".examples"
@@ -383,15 +419,15 @@ class Coach:
                         # print("Trying pickle")
                         self.trainExamplesHistory = Unpickler(f).load()
                         is_error = False
-                        """except:
+                        except:
                             print("Error while pickling")
-                            is_error = True"""
+                            is_error = True
                     f.closed  # Indented this by one
             else:
                 print("File is empty")
             # examples based on the model were already collected (loaded)
             self.skipFirstSelfPlay = True
-
+    """
     def load_examples_from_path(self, file_path):
         examplesFile = file_path
         with open(examplesFile, "rb") as f:
