@@ -166,7 +166,7 @@ class Coach:
                 print(f"##### Iteration {i} Distributed Training #####")
 
                 if i == 1 and not self.config["load_model"]:
-                    first_iteration_num_games = int(self.config["num_self_play_episodes"] / 120)
+                    first_iteration_num_games = int(self.config["first_iter_num_games"])
 
                     # on first iteration, play X games, so a model can be updated to lambda
                     print(
@@ -192,7 +192,7 @@ class Coach:
                         print("New model accepted in previous iteration. Start polling games.")
 
                     polling_tracker = 1
-                    while games_played_during_iteration < self.config["num_self_play_episodes"]:
+                    while len(self.iterationTrainExamples) < self.config["max_length_of_queue"]:
                         # play games and download from drive until limit is reached
                         print(f"Starting polling session #{polling_tracker}.")
 
@@ -616,8 +616,12 @@ class Coach:
 
         for f in files:
             # game_count >= game_limit, STOP
+            """
             if game_count >= game_limit:
                 # print("game limit reached")
+                break
+            """
+            if len(self.iterationTrainExamples) >= self.config['max_length_of_queue']:
                 break
 
             # load in the file
