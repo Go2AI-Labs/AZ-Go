@@ -86,11 +86,13 @@ class Coach:
             if self.config["display"] == 1:
                 print("================Episode Playing Step:{}=====CURPLAYER:{}==========".format(episodeStep,
                                                                                                   "White" if self.curPlayer == -1 else "Black"))
-                # Get the current board, current player's board, and game history at current state
+            
+            # Get the current board, current player's board, and game history at current state
             canonicalBoard = self.game.getCanonicalForm(board, self.curPlayer)
+
             player_board = (c_boards[0], c_boards[1]) if self.curPlayer == 1 else (c_boards[1], c_boards[0])
-            canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(x_boards, y_boards,
-                                                                                 canonicalBoard.pieces, player_board)
+            canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(x_boards, y_boards, 
+                                                                                 canonicalBoard, player_board)
             # set temperature variable and get move probabilities
             temp = int(episodeStep < self.config["temperature_threshold"])
 
@@ -114,6 +116,7 @@ class Coach:
                 action = np.argmax(pi)
             # play the chosen move
             board, self.curPlayer = self.game.getNextState(board, self.curPlayer, action)
+
             if self.config["display"] == 1:
                 print("BOARD updated:")
                 print(display(board))

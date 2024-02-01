@@ -271,23 +271,23 @@ class GoGame(Game):
 
     def getCanonicalHistory(self, x_boards, y_boards, canonicalBoard, player_board):
         history = []
+        board_pieces = canonicalBoard.pieces
+        new_x = np.copy(board_pieces)
 
-        new_x = np.copy(canonicalBoard)
-
-        if -1 in canonicalBoard:
+        if -1 in board_pieces:
             new_x[new_x == -1] = 0
         else:
-            new_x = canonicalBoard
+            new_x = board_pieces
 
         x_boards.append(new_x)
 
-        canonicalBoard = np.where(canonicalBoard == 1, -1, np.where(canonicalBoard == -1, 1, canonicalBoard))
+        board_pieces = np.where(board_pieces == 1, -1, np.where(board_pieces == -1, 1, board_pieces))
 
-        new_y = np.copy(canonicalBoard)
-        if -1 in canonicalBoard:
+        new_y = np.copy(board_pieces)
+        if -1 in board_pieces:
             new_y[new_y == -1] = 0
         else:
-            new_y = canonicalBoard
+            new_y = board_pieces
         y_boards.append(new_y)
 
         x_boards = x_boards[1:]
@@ -297,9 +297,20 @@ class GoGame(Game):
             history.append(x_boards[i])
             history.append(y_boards[i])
 
+        history.append(self.make_sensibility_layer(canonicalBoard))
         history.append(player_board[0])
         history.append(player_board[1])
+
         return history, x_boards, y_boards
+    
+    def make_sensibility_layer(self, canonicalBoard):
+        legal_and_not_eye = np.zeros((self.n, self.n))
+        legal_moves = canonicalBoard.get_legal_moves(1)
+        for i in range(self.n):
+            for j in range(self.n):
+                if not canonicalBoard.is_eye((i, j), 1) and ((i,j) in legal_moves):
+                    legal_and_not_eye[i, j] = 1 
+        return legal_and_not_eye           
     
     def init_x_y_boards(self):
         x_boards = []

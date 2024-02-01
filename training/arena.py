@@ -61,7 +61,7 @@ class Arena:
             canonicalBoard = self.game.getCanonicalForm(board, curPlayer)
             player_board = (c_boards[0], c_boards[1]) if curPlayer == 1 else (c_boards[1], c_boards[0])
             canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(x_boards, y_boards,
-                                                                                 canonicalBoard.pieces, player_board)
+                                                                                 canonicalBoard, player_board)
             # print("History used to make move: ", canonicalHistory)
             action = players[curPlayer + 1](canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, False, self.config["num_full_search_sims"])
             player_name = "B" if curPlayer == 1 else "W"

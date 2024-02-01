@@ -163,7 +163,7 @@ class MCTS:
         if calls > 1:
             canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(copy.deepcopy(x_boards),
                                                                                  copy.deepcopy(y_boards),
-                                                                                 canonicalBoard.pieces, player_board)
+                                                                                 canonicalBoard, player_board)
 
         s = self.game.stringRepresentation(canonicalBoard)
 
