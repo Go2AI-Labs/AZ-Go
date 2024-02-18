@@ -21,7 +21,7 @@ from mcts import MCTS
 from go.go_game import display
 # from utils.status_bar import StatusBar
 from utils.config_handler import ConfigHandler
-from definitions import SENS_CONFIG_PATH, DIS_EXAMPLE_PATH
+from definitions import SENS_CONFIG_PATH, DIS_EXAMPLE_PATH, EXAMPLES_PATH
 
 
 class Coach:
@@ -337,6 +337,7 @@ class Coach:
             f.close()
 
     def load_train_examples_helper(self, filename):
+        filename = os.path.join(EXAMPLES_PATH, filename)
         with open(filename, "rb") as f:
             examples = Unpickler(f).load()
             f.close()
@@ -344,7 +345,7 @@ class Coach:
 
 
     def load_train_examples(self):
-        checkpoint_files = [file for file in os.listdir(self.config["examples_directory"]) if
+        checkpoint_files = [file for file in os.listdir(EXAMPLES_PATH) if
                             file.startswith('checkpoint_') and file.endswith('.pth.tar.examples')]
         checkpoint_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))
         if len(checkpoint_files) <= self.config['max_num_iterations_in_train_example_history']:
@@ -375,7 +376,7 @@ class Coach:
         return 'checkpoint_' + str(iteration) + '.pth.tar'
 
     def load_model(self):
-        checkpoint_files = [file for file in os.listdir(self.config["examples_directory"]) if
+        checkpoint_files = [file for file in os.listdir(EXAMPLES_PATH) if
                             file.startswith('checkpoint_') and file.endswith('.pth.tar.examples')]
         self.latest_checkpoint = max(checkpoint_files, key=lambda x: int(x.split('_')[1].split('.')[0]))
         print("Loading checkpoint: ", self.latest_checkpoint)

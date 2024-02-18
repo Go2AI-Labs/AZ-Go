@@ -9,6 +9,7 @@ Definitions for common paths to configuration files.
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # path to project root
 CONFIG_PATH = os.path.join(ROOT_DIR, 'configs/config.yaml')  # path to config.yaml
 SENS_CONFIG_PATH = os.path.join(ROOT_DIR, 'configs/sensitive.yaml')  # path to sensitive_config.yaml
+EXAMPLES_PATH = os.path.join(ROOT_DIR, 'logs/train_examples') # path to checkpoint example files
 
 # Paths only used for distributed training
 DIS_MODEL_PATH = os.path.join(ROOT_DIR, 'logs/checkpoints/')  # path to store downloaded model to
