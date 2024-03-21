@@ -312,10 +312,22 @@ def play(command):
     else:
         # parse square
         square_str = command.split()[-1]
+        letters = ["a", "b", "c", "d", "e", "f", "g"]
+        """
         col = ord(square_str[0]) - ord('A') + 1 - (1 if ord(square_str[0]) > ord('I') else 0)
         row_count = int(square_str[1:]) if len(square_str[1:]) > 1 else ord(square_str[1:]) - ord('0')
+        """
+        if square_str[0] in letters:
+            col = letters.index(square_str[0])
+        else:
+            col = int(square_str[0])
+        if square_str[1] in letters:
+            row = letters.index(square_str[1])
+        else:
+            row = int(square_str[1])
+        action = (row*7) + col
         # row = (BOARD_RANGE - 1) - row_count
-        action = ((config["board_size"] - row_count) * config["board_size"]) + (col - 1)
+        # action = ((config["board_size"] - row_count) * config["board_size"]) + (col - 1)
         # square = row * BOARD_RANGE + col
 
     # make move on board
@@ -330,6 +342,41 @@ def play(command):
     # Player will switch, so switch x and y boards (current/opposing player histories)
     x_boards, y_boards = y_boards, x_boards
 
+def loadsgf(command):
+    #Get SGF file as text
+    parsed_cmd = command.split(" ")
+    filepath = parsed_cmd[1]
+    
+    with open(filepath) as f:
+        temp = f.read()
+    temp = temp.replace("(", "").replace(")", "")
+
+    #Get a list of moves and puzzle answer from the SGF file
+    sgf_info = temp.split(';')
+    sgf_info = sgf_info[2:]
+    moves = []
+    ans = []
+    for elt in sgf_info:
+        if "C" in elt:
+            finalElt = elt.split("C")
+            elt = finalElt[0]
+
+            raw_ans = finalElt[1].split(" ")[1]
+            ans = raw_ans.split(",")
+            ans[1] = ans[1].replace("]", "")        
+
+        parsed_move = elt.split("[")
+        parsed_move[1] = parsed_move[1].replace("]", "")
+        moves.append(parsed_move)
+
+    #get current/next player
+    curr_player = "B" if moves[-1][0] == "W" else "W"
+    prev_player = "B" if curr_player == "W" else "W"
+    #return all information from SGF file
+
+    for m in moves:
+        fake_cmd = "play " + m[0] + " " + m[1]
+        play(fake_cmd)
 
 # GTP communication protocol
 def gtp():
@@ -363,6 +410,9 @@ def gtp():
             print('=\n')
         elif 'genmove' in command:
             print('=', generate_move(BLACK if command.split()[-1].lower() == 'b' else WHITE) + '\n')
+        elif 'loadsgf' in command:
+            loadsgf(command)
+            print('=\n')
         elif 'quit' in command:
             generate_video()
             sys.exit()
