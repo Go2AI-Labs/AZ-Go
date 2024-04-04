@@ -39,7 +39,7 @@ for i in range(8):
     y_boards.append(np.zeros((config["board_size"], config["board_size"])))
 canonicalBoard = game.getCanonicalForm(board, curPlayer)
 player_board = (c_boards[0], c_boards[1])
-canonicalHistory, x_boards, y_boards = game.getCanonicalHistory(x_boards, y_boards, canonicalBoard.pieces, player_board)
+canonicalHistory, x_boards, y_boards = game.getCanonicalHistory(x_boards, y_boards, canonicalBoard, player_board)
 
 
 def print_board():
@@ -98,7 +98,7 @@ def generate_move(color):
     # Update histories to prepare for next move
     canonicalBoard = game.getCanonicalForm(board, curPlayer)
     player_board = (c_boards[0], c_boards[1]) if curPlayer == 1 else (c_boards[1], c_boards[0])
-    canonicalHistory, x_boards, y_boards = game.getCanonicalHistory(x_boards, y_boards, canonicalBoard.pieces,
+    canonicalHistory, x_boards, y_boards = game.getCanonicalHistory(x_boards, y_boards, canonicalBoard,
                                                                     player_board)
 
     x_boards, y_boards = y_boards, x_boards
@@ -136,7 +136,7 @@ def play(command):
     # Update histories to prepare for next move
     canonicalBoard = game.getCanonicalForm(board, curPlayer)
     player_board = (c_boards[0], c_boards[1]) if curPlayer == 1 else (c_boards[1], c_boards[0])
-    canonicalHistory, x_boards, y_boards = game.getCanonicalHistory(x_boards, y_boards, canonicalBoard.pieces,
+    canonicalHistory, x_boards, y_boards = game.getCanonicalHistory(x_boards, y_boards, canonicalBoard,
                                                                     player_board)
 
     # Player will switch, so switch x and y boards (current/opposing player histories)
