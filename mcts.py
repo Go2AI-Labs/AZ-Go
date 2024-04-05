@@ -156,15 +156,7 @@ class MCTS:
                     return -gameEnd
                 else:
                     return 0"""
-
-        if calls > 500:
-            # print("#### MCTS Recursive Base Case Triggered ####")
-            return 1e-4
-
-        if calls > 1:
-            canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(copy.deepcopy(x_boards),
-                                                                                 copy.deepcopy(y_boards),
-                                                                                 canonicalBoard, player_board)
+        # See if game is in a terminal state
         s = self.game.stringRepresentation(canonicalBoard)
         if s not in self.Es:
             if 1 in player_board[0]:
@@ -173,7 +165,19 @@ class MCTS:
                 self.Es[s] = self.game.getGameEndedSelfPlay(canonicalBoard, -1)
         if self.Es[s] != 0:
             return -self.Es[s]
+
+        # See if recursion limit has been reached
+        if calls > 500:
+            # print("#### MCTS Recursive Base Case Triggered ####")
+            return 1e-4
+
+        # Get current game history if terminal state not found
+        if calls > 1:
+            canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(copy.deepcopy(x_boards),
+                                                                                 copy.deepcopy(y_boards),
+                                                                                 canonicalBoard, player_board)
         
+        # If current state is a leaf node, add this to the tree
         if s not in self.Ps:
             #print("leaf node")
             self.Ps[s], v = self.nnet.predict(canonicalHistory)  # changed from board.pieces
@@ -201,7 +205,7 @@ class MCTS:
                 perspective = -1
 
             # do not use score threshold in MCTS
-            gameEnd = self.game.getGameEndedArena(canonicalBoard, perspective)
+            gameEnd = self.game.getGameEndedSelfPlay(canonicalBoard, perspective)
             if gameEnd != 0:
                 return -gameEnd
             return -v
