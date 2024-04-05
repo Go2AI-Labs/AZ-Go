@@ -70,10 +70,10 @@ class GoGame(Game):
     #   - A move threshold (7 x 7 x 2 = 98)
     #   - Both players passing
     # Self play uses Tromp-Taylor rules (todo)
-    def getGameEndedSelfPlay(self, board, player, iteration, returnScore=False, disable_resignation_threshold=False):
+    def getGameEndedSelfPlay(self, board, player, iteration=0, returnScore=False, disable_resignation_threshold=False):
         winner = 0
         (score_black, score_white) = self.getScore(board)
-        by_score = 0.5 * (board.n * board.n + board.komi)
+        by_score = 0.5 * ((board.n * board.n) + board.komi)
 
         # determine maximum number of allowed moves
         """max_moves = 0
@@ -88,7 +88,7 @@ class GoGame(Game):
             max_moves = 75
         else:"""
             # iteration 31 and higher
-        max_moves = 98
+        """max_moves = 98
 
         # limit games to 98 moves, determine winner based on score of current board
         if len(board.history) >= max_moves:
@@ -104,10 +104,10 @@ class GoGame(Game):
                     winner = -1
             else:
                 # Tie
-                winner = 1e-4
+                winner = 1e-4"""
 
         # End game "normally"
-        elif not disable_resignation_threshold and len(board.history) > 1:
+        if not disable_resignation_threshold and len(board.history) > 1:
             # Check if both players passed in succession
             if board.history[-1] is None and board.history[-2] is None:
                 if score_black > score_white:
@@ -125,6 +125,21 @@ class GoGame(Game):
                     winner = 1e-4
             # score threshold is enabled, games can be ended early based on score
             elif score_black > by_score or score_white > by_score:
+                if score_black > score_white:
+                    if player == 1:
+                        winner = 1
+                    else:
+                        winner = -1
+                elif score_white > score_black:
+                    if player == -1:
+                        winner = 1
+                    else:
+                        winner = -1
+                else:
+                    # Tie
+                        winner = 1e-4
+            # allow maximum number of moves to end game in self play scoring
+            if len(board.history) >= 98:
                 if score_black > score_white:
                     if player == 1:
                         winner = 1
@@ -209,16 +224,139 @@ class GoGame(Game):
         score_white = np.sum(board.pieces == -1)
         score_black = np.sum(board.pieces == 1)
         empties = zip(*np.where(board.pieces == 0))
-        for empty in empties:
+        """print(f"Empties: {empties}")
+        print(f"Score black before eye: {score_black}")
+        print(f"Score white before eye: {score_white}")"""
+        """for empty in empties:
             # Check that all surrounding points are of one color
             if board.is_eyeish(empty, 1):
+                #print(f"Black Eye at {empty}")
                 score_black += 1
             elif board.is_eyeish(empty, -1):
-                score_white += 1
+                #print(f"White Eye at {empty}")
+                score_white += 1"""
         score_white += board.komi
+        reach_mat = np.zeros((7, 7, 2))
+        reach_mat = self.get_reachable(board, reach_mat)
+        for i in range(7):
+            for j in range(7):
+                if reach_mat[i][j][0] == 1 and reach_mat[i][j][1] == 0:
+                    score_black += 1
+                elif reach_mat[i][j][0] == 0 and reach_mat[i][j][1] == 1:
+                    score_white += 1
         score_white -= board.passes_white
         score_black -= board.passes_black
         return (score_black, score_white)
+    
+    def get_reachable(self, board, reach_mat):
+        changed = []
+        for i in range(7):
+            for j in range(7):
+                if board.pieces[i][j] == 1:
+                    color_idx = 0
+                elif board.pieces[i][j] == -1:
+                    color_idx = 1
+                else: 
+                    continue
+                for k in range(i-1, -1, -1):
+                    if board.pieces[k][j] == 0 and reach_mat[k][j][color_idx] == 0:
+                        reach_mat[k][j][color_idx] = 1
+                        changed.append((k, j))
+                    else:
+                        break
+                for k in range(i+1, 7, 1):
+                    if board.pieces[k][j] == 0 and reach_mat[k][j][color_idx] == 0:
+                        reach_mat[k][j][color_idx] = 1
+                        changed.append((k, j))
+                    else:
+                        break
+                for k in range(j-1, -1, -1):
+                    if board.pieces[i][k] == 0 and reach_mat[i][k][color_idx] == 0:
+                        reach_mat[i][k][color_idx] = 1
+                        changed.append((i, k))
+                    else:
+                        break
+                for k in range(j+1, 7, 1):
+                    if board.pieces[i][k] == 0 and reach_mat[i][k][color_idx] == 0:
+                        reach_mat[i][k][color_idx] = 1
+                        changed.append((i, k))
+                    else:
+                        break
+        for p in range(len(changed)):
+            i = changed[p][0]
+            j = changed[p][1]
+            if board.pieces[i][j] == 0:
+                if i > 0:
+                    for k in range(i-1, -1, -1):
+                        if board.pieces[k][j] != 0:
+                            break
+                        if reach_mat[k][j][0] == 0 and reach_mat[i][j][0] == 1:
+                            reach_mat[k][j][0] = 1
+                        if reach_mat[k][j][1] == 0 and reach_mat[i][j][1] == 1:
+                            reach_mat[k][j][1] = 1
+                if i < 6:
+                    for k in range(i+1, 7, 1):
+                        if board.pieces[k][j] != 0:
+                            break
+                        if reach_mat[k][j][0] == 0 and reach_mat[i][j][0] == 1:
+                            reach_mat[k][j][0] = 1
+                        if reach_mat[k][j][1] == 0 and reach_mat[i][j][1] == 1:
+                            reach_mat[k][j][1] = 1
+                if j > 0:
+                    for k in range(j-1, -1, -1):
+                        if board.pieces[i][k] != 0:
+                            break
+                        if reach_mat[i][k][0] == 0 and reach_mat[i][j][0] == 1:
+                            reach_mat[i][k][0] = 1
+                        if reach_mat[i][k][1] == 0 and reach_mat[i][j][1] == 1:
+                            reach_mat[i][k][1] = 1
+                if j < 6:
+                    for k in range(j+1, 7, 1):
+                        if board.pieces[i][k] != 0:
+                            break
+                        if reach_mat[i][k][0] == 0 and reach_mat[i][j][0] == 1:
+                            reach_mat[i][k][0] = 1
+                        if reach_mat[i][k][1] == 0 and reach_mat[i][j][1] == 1:
+                            reach_mat[i][k][1] = 1
+        for i in range(7):
+            for j in range(7):
+                if board.pieces[i][j] != 0:
+                    continue
+                elif board.pieces[i][j] == 0 and (reach_mat[i][j][0] != 1 or reach_mat[i][j][1] != 1):
+                    if i > 0:
+                        for k in range(i-1, -1, -1):
+                            if board.pieces[k][j] != 0 or (reach_mat[i][j][0] == 1 and reach_mat[i][j][1] == 1):
+                                break
+                            if reach_mat[k][j][0] == 1 and reach_mat[i][j][0] == 0:
+                                reach_mat[i][j][0] = 1
+                            if reach_mat[k][j][1] == 1 and reach_mat[i][j][1] == 0:
+                                reach_mat[i][j][1] = 1
+                    if i < 6:
+                        for k in range(i+1, 7, 1):
+                            if board.pieces[k][j] != 0 or (reach_mat[i][j][0] == 1 and reach_mat[i][j][1] == 1):
+                                break
+                            if reach_mat[k][j][0] == 1 and reach_mat[i][j][0] == 0:
+                                reach_mat[i][j][0] = 1
+                            if reach_mat[k][j][1] == 1 and reach_mat[i][j][1] == 0:
+                                reach_mat[i][j][1] = 1
+                    if j > 0:
+                        for k in range(j-1, -1, -1):
+                            if board.pieces[i][k] != 0 or (reach_mat[i][j][0] == 1 and reach_mat[i][j][1] == 1):
+                                break
+                            if reach_mat[i][k][0] == 1 and reach_mat[i][j][0] == 0:
+                                reach_mat[i][j][0] = 1
+                            if reach_mat[i][k][1] == 1 and reach_mat[i][j][1] == 0:
+                                reach_mat[i][j][1] = 1
+                    if j < 6:
+                        for k in range(j+1, 7, 1):
+                            if board.pieces[i][k] != 0 or (reach_mat[i][j][0] == 1 and reach_mat[i][j][1] == 1):
+                                break
+                            if reach_mat[i][k][0] == 1 and reach_mat[i][j][0] == 0:
+                                reach_mat[i][j][0] = 1
+                            if reach_mat[i][k][1] == 1 and reach_mat[i][j][1] == 0:
+                                reach_mat[i][j][1] = 1
+        return reach_mat
+        
 
     def getCanonicalForm(self, board, player):
         # return state if player==1, else return -state if player==-1

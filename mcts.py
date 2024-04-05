@@ -144,7 +144,7 @@ class MCTS:
         #print("Call #", calls, ": History length - ", len(canonicalBoard.history), " Is self play - ", is_self_play)
 
         # check if both players passed
-        if len(canonicalBoard.history) > 1:
+        """if len(canonicalBoard.history) > 1:
             if canonicalBoard.history[-1] is None and canonicalBoard.history[-2] is None:
                 if 1 in player_board[0]:
                     perspective = 1
@@ -155,23 +155,32 @@ class MCTS:
                 if gameEnd != 0:
                     return -gameEnd
                 else:
-                    return 0
+                    return 0"""
+        # See if game is in a terminal state
+        s = self.game.stringRepresentation(canonicalBoard)
+        if s not in self.Es:
+            if 1 in player_board[0]:
+                self.Es[s] = self.game.getGameEndedSelfPlay(canonicalBoard, 1)
+            else:
+                self.Es[s] = self.game.getGameEndedSelfPlay(canonicalBoard, -1)
+        if self.Es[s] != 0:
+            return -self.Es[s]
 
+        # See if recursion limit has been reached
         if calls > 500:
             # print("#### MCTS Recursive Base Case Triggered ####")
             return 1e-4
 
+        # Get current game history if terminal state not found
         if calls > 1:
             canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(copy.deepcopy(x_boards),
                                                                                  copy.deepcopy(y_boards),
                                                                                  canonicalBoard, player_board)
-
-        s = self.game.stringRepresentation(canonicalBoard)
-
+        
+        # If current state is a leaf node, add this to the tree
         if s not in self.Ps:
             #print("leaf node")
             self.Ps[s], v = self.nnet.predict(canonicalHistory)  # changed from board.pieces
-
             valids = self.game.getValidMoves(canonicalBoard, 1, is_self_play)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
@@ -196,10 +205,9 @@ class MCTS:
                 perspective = -1
 
             # do not use score threshold in MCTS
-            gameEnd = self.game.getGameEndedArena(canonicalBoard, perspective)
+            gameEnd = self.game.getGameEndedSelfPlay(canonicalBoard, perspective)
             if gameEnd != 0:
                 return -gameEnd
-
             return -v
 
         valids = self.Vs[s]
