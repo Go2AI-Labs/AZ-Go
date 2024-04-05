@@ -142,8 +142,8 @@ class Arena:
                        suffix=f"| Eps: {round(end_time - start_time, 2)} | Avg Eps: {round(total_time / eps, 2)} | Total: {round(total_time, 2)}")
             
             #If one of the models meets the threshold for games won AND there is more than 1 game left to play, return from arena play
-            if (oneWon >= threshold or twoWon >= threshold) and i < (maxeps-2):
-                print(f"\nEnded after {i+1} games\nOne Won: {oneWon} || Two Won: {twoWon} || One %: {oneWon/50} || Two %: {twoWon/50}")
+            if (oneWon >= threshold or twoWon >= threshold):
+                print(f"\nEnded after {i+1} games\nOne Won: {oneWon} || Two Won: {twoWon} || One %: {oneWon/self.config['acceptance_threshold']} || Two %: {twoWon/self.config['acceptance_threshold']}")
                 return oneWon, twoWon, draws, outcomes, (i+1)
 
             self.player1, self.player2 = self.player2, self.player1
