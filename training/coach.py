@@ -167,61 +167,52 @@ class Coach:
 
             if self.config["enable_distributed_training"]:
                 print(f"##### Iteration {i} Distributed Training #####")
+                
+                if i == 1:
+                    # save initial model for distributed workers
+                    self.nnet.save_checkpoint(folder=self.config["checkpoint_directory"], filename='best.pth.tar')
 
-                if i == 1 and not self.config["load_model"]:
-                    first_iteration_num_games = int(self.config["first_iter_num_games"])
+                self.iterationTrainExamples = deque([], maxlen=self.config["max_length_of_queue"])
 
-                    # on first iteration, play X games, so a model can be updated to lambda
-                    print(
-                        f"First iteration. Play {first_iteration_num_games} self play games, so there is a model to upload to lambda.")
-
-                    self.iterationTrainExamples = deque([], maxlen=self.config["max_length_of_queue"])
-                    # play self play games
-                    games_played_during_iteration = self.play_games(first_iteration_num_games,
-                                                                    "1st Iter Games", games_played_during_iteration, i)
-
+                if not new_model_accepted_in_previous_iteration:
+                    # download most recent training examples from the drive (until numEps is hit or files run out)
+                    # previous examples are still valid training data
+                    print("New model not accepted in previous iteration. Downloading from lambda.")
+                    games_played_during_iteration += self.scan_examples_folder_and_load(
+                        game_limit=self.config["num_self_play_episodes"])
+                    status_bar(games_played_during_iteration, self.config["num_self_play_episodes"],
+                               title="Lambda Downloaded Games", label="Games")
                 else:
-                    self.iterationTrainExamples = deque([], maxlen=self.config["max_length_of_queue"])
+                    print("New model accepted in previous iteration. Start polling games.")
 
-                    if not new_model_accepted_in_previous_iteration:
-                        # download most recent training examples from the drive (until numEps is hit or files run out)
-                        # previous examples are still valid training data
-                        print("New model not accepted in previous iteration. Downloading from lambda.")
-                        games_played_during_iteration += self.scan_examples_folder_and_load(
-                            game_limit=self.config["num_self_play_episodes"])
-                        status_bar(games_played_during_iteration, self.config["num_self_play_episodes"],
-                                   title="Lambda Downloaded Games", label="Games")
-                    else:
-                        print("New model accepted in previous iteration. Start polling games.")
+                polling_tracker = 1
+                while len(self.iterationTrainExamples) < self.config["max_length_of_queue"]:
+                    # play games and download from drive until limit is reached
+                    print(f"Starting polling session #{polling_tracker}.")
 
-                    polling_tracker = 1
-                    while len(self.iterationTrainExamples) < self.config["max_length_of_queue"]:
-                        # play games and download from drive until limit is reached
-                        print(f"Starting polling session #{polling_tracker}.")
+                    # Play self play games
+                    games_played_during_iteration = self.play_games(self.config["num_polling_games"],
+                                                                    "Polling Games", games_played_during_iteration,
+                                                                    i)
 
-                        # Play self play games
-                        games_played_during_iteration = self.play_games(self.config["num_polling_games"],
-                                                                        "Polling Games", games_played_during_iteration,
-                                                                        i)
+                    # after polling games are played, check drive and download as many "new" files as possible
+                    num_downloads = self.scan_examples_folder_and_load(
+                        game_limit=self.config["num_self_play_episodes"] - games_played_during_iteration)
 
-                        # after polling games are played, check drive and download as many "new" files as possible
-                        num_downloads = self.scan_examples_folder_and_load(
-                            game_limit=self.config["num_self_play_episodes"] - games_played_during_iteration)
-
-                        if (self.config["num_self_play_episodes"] - games_played_during_iteration > 0):
-                            status_bar(num_downloads,
+                    if (self.config["num_self_play_episodes"] - games_played_during_iteration > 0):
+                        status_bar(num_downloads,
                                    (self.config["num_self_play_episodes"] - games_played_during_iteration),
                                    title="Lambda Downloaded Games", label="Games")
-                            print()
-
-                        games_played_during_iteration += num_downloads
-                        status_bar(games_played_during_iteration, self.config["num_self_play_episodes"],
-                                   title="Self Play + Distributed Training", label="Games")
-                        polling_tracker += 1
-
-                        # spacers to ensure bar printouts are correct
                         print()
-                        print()
+
+                    games_played_during_iteration += num_downloads
+                    status_bar(games_played_during_iteration, self.config["num_self_play_episodes"],
+                               title="Self Play + Distributed Training", label="Games")
+                    polling_tracker += 1
+
+                    # spacers to ensure bar printouts are correct
+                    print()
+                    print()
 
             else:
                 if not self.skipFirstSelfPlay or i > start_iter:
