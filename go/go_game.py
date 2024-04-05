@@ -70,7 +70,7 @@ class GoGame(Game):
     #   - A move threshold (7 x 7 x 2 = 98)
     #   - Both players passing
     # Self play uses Tromp-Taylor rules (todo)
-    def getGameEndedSelfPlay(self, board, player, iteration, returnScore=False, disable_resignation_threshold=False):
+    def getGameEndedSelfPlay(self, board, player, iteration=0, returnScore=False, disable_resignation_threshold=False):
         winner = 0
         (score_black, score_white) = self.getScore(board)
         by_score = 0.5 * ((board.n * board.n) + board.komi)
@@ -320,7 +320,9 @@ class GoGame(Game):
                             reach_mat[i][k][1] = 1
         for i in range(7):
             for j in range(7):
-                if board.pieces[i][j] == 0 and (reach_mat[i][j][0] != 1 or reach_mat[i][j][1] != 1):
+                if board.pieces[i][j] != 0:
+                    continue
+                elif board.pieces[i][j] == 0 and (reach_mat[i][j][0] != 1 or reach_mat[i][j][1] != 1):
                     if i > 0:
                         for k in range(i-1, -1, -1):
                             if board.pieces[k][j] != 0 or (reach_mat[i][j][0] == 1 and reach_mat[i][j][1] == 1):

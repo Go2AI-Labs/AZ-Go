@@ -272,7 +272,7 @@ class Coach:
             self.winRate.append(nwins / total_played)
             self.saveLosses()
             print('NEW/PREV WINS : %d / %d ; DRAWS : %d' % (nwins, pwins, draws))
-            if pwins + nwins > 0 and float(nwins) / (pwins + nwins) < self.config["acceptance_threshold"]:
+            if (nwins/total_played) < self.config["acceptance_threshold"]:
                 print('REJECTING NEW MODEL')
                 new_model_accepted_in_previous_iteration = False
                 iterHistory['PITT_RESULT'].append('R')
