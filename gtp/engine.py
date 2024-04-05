@@ -1,24 +1,73 @@
 import sys
-
+sys.path.append("..")
+sys.path.append("../go")
+sys.path.append("../utils")
+import os
 import numpy as np
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
+import cv2
 
+from heatmap_generator import MapGenerator
 from go.go_game import GoGame as Game
 from go.go_game import display
-from mcts import MCTS
+from engine_mcts import MCTS
 from neural_network.neural_net_wrapper import NNetWrapper as NNetWrapper
 from training.coach import Coach
 from utils.config_handler import ConfigHandler
 from utils.path_handler import resource_path
 from definitions import CONFIG_PATH
 
-config = ConfigHandler(CONFIG_PATH)
+#--------------------------------------------#
+#       Initialize Files/Directories         #
+#--------------------------------------------#
+# Make analysis folder if needed
+analysis_dir = "analysis"
+if not os.path.exists(analysis_dir):
+    os.makedirs(analysis_dir)
+
+# Make analysis folder for this game
+game_folders = os.listdir(analysis_dir)
+game_folder_name = f"Engine_Game_{len(game_folders) + 1}"
+game_folder = os.path.join(analysis_dir, game_folder_name)
+if not os.path.exists(game_folder):
+    os.makedirs(game_folder)
+
+# Make the text file to hold all data for this game
+temp_filename= "All_Data.txt"
+filename = os.path.join(game_folder, temp_filename)
+if not os.path.exists(filename):
+    with open(filename, "w") as f:
+        line = "------------BEGINNING OF NEW GAME------------\n\n"
+        f.write(line)
+        line2 = "Model from path -- " + resource_path("model.tar") + "\n"
+        f.write(line2)
+    f.close()
+
+
+config = ConfigHandler("config.yaml")
 
 VERSION = '1.0'
 
 game = Game(config["board_size"])
 neural_network = NNetWrapper(game, config)
-
-neural_network.load_checkpoint("", resource_path("model.tar"), cpu_only=True)
+# Load in the specified model if given 
+# If no model is given, use model.tar
+argv = sys.argv
+if(len(argv) > 1):
+    if ".tar" not in argv[1]:
+        model_file = argv[1] + ".tar"
+    else:
+        model_file = argv[1]
+    model_path = os.path.join("model_files", model_file)
+    if not os.path.exists(model_path):
+        print(f"Model file {model_file} does not exist...")
+        print("Trying to load default file -- model.tar")
+        model_path = os.path.join("model_files", "model.tar")
+else:
+    model_path = os.path.join("model_files", "model.tar")
+neural_network.load_checkpoint("", model_path, cpu_only=True)
 
 coach = Coach(game, neural_network, config)
 
@@ -39,8 +88,8 @@ for i in range(8):
     y_boards.append(np.zeros((config["board_size"], config["board_size"])))
 canonicalBoard = game.getCanonicalForm(board, curPlayer)
 player_board = (c_boards[0], c_boards[1])
-canonicalHistory, x_boards, y_boards = game.getCanonicalHistory(x_boards, y_boards, canonicalBoard.pieces, player_board)
-
+canonicalHistory, x_boards, y_boards = game.getCanonicalHistory(x_boards, y_boards, canonicalBoard, player_board)
+move_count = 0
 
 def print_board():
     global board
@@ -69,8 +118,133 @@ def clear_board():
     board = game.getInitBoard()
 
 
+def generate_video(): 
+    global game_folder
+    image_folder = f'{os.getcwd()}/{game_folder}/' # make sure to use your folder 
+    video_name = f'{image_folder}/All_Data_Video.mp4'
+      
+    images = []
+    for i in range(len(os.listdir(image_folder))-1):
+        j = i+1
+        filename = f'Move_{j}/Move_{j}_All_Board.png'
+        full_path = os.path.join(image_folder, filename)
+        images.append(full_path)
+    # Array images should only consider 
+    # the image files ignoring others if any 
+    #print(images)  
+    frame = cv2.imread(os.path.join(image_folder, images[0])) 
+    # setting the frame width, height width 
+    # the width, height of first image 
+    height, width, layers = frame.shape   
+    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+    video = cv2.VideoWriter(video_name, fourcc, 1, (width, height))  
+    # Appending the images to the video one by one 
+    for image in images:  
+        video.write(cv2.imread(image))  
+    # Deallocating memories taken for window creation 
+    cv2.destroyAllWindows()  
+    video.release()  # releasing the video generated 
+
+#TODO -- REMOVE deterministic
+def log_analysis_data(counts, action, curPlayer, canonicalBoard):
+    global filename, neural_network, move_count, game_folder
+    # Get variables for current move 
+    move_count += 1
+    player_string = "Black" if curPlayer == 1 else "White"
+
+    # Make folder to hold data for the current move 
+    move_dir = f"Move_{move_count}"
+    move_path = os.path.join(game_folder, move_dir)
+    if not os.path.exists(move_path):
+        os.makedirs(move_path)
+
+    # Create map generator and initialize maps
+    generator = MapGenerator()
+    mcts_map = generator.init_new_map()
+    nnet_map = generator.init_new_map()
+    qval_map = generator.init_new_map()
+
+    # Write data to the main file
+    with open(filename, "a") as f:
+        header = f"--------------Player: {player_string}--------------\n--------------Move #{move_count}--------------\n----------------Counts from MCTS----------------\n"
+        f.write(header)
+        # Generate the heatmap
+        mcts_map, percentages = generator.generate_map(mcts_map, counts, f)
+        # Save the heatmap
+        name = f"MCTS_mov_{move_count}.png"
+        map_name = os.path.join(move_path, name)
+        mcts_image = generator.draw_text(mcts_map, percentages)
+        generator.save_image(mcts_image, map_name)
+        # Write the pass move to the main file
+        pass_move = round((counts[49] * 100), 2)
+        pass_str = f"Pass Move Percentage = {pass_move}\n"
+        f.write(pass_str)
+
+        # Print raw output for pi from NNet
+        header2 = "\n---------------Raw Neural Net Output---------------\n"
+        f.write(header2)
+        #Get p and v from the neural network
+        p, v = neural_network.predict(canonicalHistory)
+        # Generate NNet Map
+        nnet_map, percentages = generator.generate_map(nnet_map, p, f)
+        # Save the NNet heatmap
+        nnet_image = generator.draw_text(nnet_map, percentages)
+        name = f"NNet_move_{move_count}.png"
+        map_name = os.path.join(move_path, name)
+        generator.save_image(nnet_image, map_name)
+        # Write the pass move to the main file
+        pass_move = round((p[49] * 100), 2)
+        pass_str = f"Pass Move Percentage = {pass_move}\n"
+        f.write(pass_str)
+
+        f.write("\n-------Winrate Estimate-------\n")
+        valuestr = f"V = {v[0]}\n"
+        f.write(valuestr)
+        # Print raw NNet percentage and MCTS percentage of chosen move
+        count_perc = round((counts[action] * 100), 2)
+        formatted_count = " {:>5}% ".format(count_perc)
+        raw_perc = round((p[action] * 100), 2)
+        formatted_raw = " {:>5}% ".format(raw_perc)
+        chosen = f"\n-------Chose move #{action}-------\nMCTS Count Percentage = {formatted_count}\nRaw NNet Percentage = {formatted_raw}\n\n"
+        f.write(chosen)
+        # Print the move that the neural network would have taken on its own 
+        max_nnet = np.argmax(p)
+        max_perc = round((p[max_nnet] * 100), 2)
+        formatted_max = " {:>5}% ".format(max_perc)
+        max_str = f"-------Max Probability from NNet-------\nMove = {max_nnet}\nProb = {formatted_max}"
+        f.write(max_str)
+        f.write("\n\n\n\n")
+
+        # Make map for Q vals in MCTS
+        s = game.stringRepresentation(canonicalBoard)
+        q_vals = mcts.get_Q_vals(s)
+        qval_map, percentages = generator.generate_map(qval_map, q_vals, f, use_val_colors=True)
+        name = f"QVALS_mov_{move_count}.png"
+        map_name = os.path.join(move_path, name)
+        qval_image = generator.draw_text(qval_map, percentages, use_val_size=True) 
+        generator.save_image(qval_image, map_name)
+
+        name = f"Move_{move_count}_All.png"
+        filename = os.path.join(move_path, name)
+        generator.compile_one_image([mcts_image, nnet_image, qval_image], filename, move_count)
+        
+        board_image = generator.generate_game_board(canonicalBoard, curPlayer, action)
+        name = f"Board_move_{move_count}.png"
+        map_name = os.path.join(move_path, name)
+        generator.save_image(board_image, map_name)
+        name = f"Move_{move_count}_All_Board.png"
+        filename = os.path.join(move_path, name)
+        all_image = generator.compile_one_image_with_board([mcts_image, nnet_image, qval_image, board_image], filename, move_count)
+        """if deterministic:
+            all_image = generator.was_deterministic(all_image, action)"""
+        generator.save_image(all_image, filename)
+
+    f.close()
+
+
+
 def generate_move(color):
-    global board, mcts, curPlayer, x_boards, y_boards, c_boards, canonicalHistory, player_board
+    global board, mcts, curPlayer, x_boards, y_boards, c_boards, canonicalHistory, player_board, filename, neural_network, move_count
 
     if color == BLACK:
         curPlayer = 1
@@ -84,9 +258,23 @@ def generate_move(color):
 
     num_sims = config["num_full_search_sims"]
 
-    # Generate a move based on most recent board state
-    action = np.argmax(
-        mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, False, num_sims, temp=0))
+    # Generate a move based on most recent board state (new way for logging analysis data)
+    #counts = mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, False, num_sims, temp=0)
+    #TODO Change this **FOR TEST ONLY
+    #counts, probs, deterministic = mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, False, num_sims, temp=0)
+    counts = mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, False, num_sims, temp=0)
+    action = np.argmax(counts)
+    """
+    if deterministic:
+        action = np.argmax(probs)
+    else:
+        action = np.argmax(counts)
+    """
+    log_analysis_data(counts, action, curPlayer, canonicalBoard)
+
+    #Old way of getting action
+    """action = np.argmax(
+        mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, False, num_sims, temp=0))"""
     # Perform the move
     board, curPlayer = game.getNextState(board, curPlayer, action)
 
@@ -98,7 +286,7 @@ def generate_move(color):
     # Update histories to prepare for next move
     canonicalBoard = game.getCanonicalForm(board, curPlayer)
     player_board = (c_boards[0], c_boards[1]) if curPlayer == 1 else (c_boards[1], c_boards[0])
-    canonicalHistory, x_boards, y_boards = game.getCanonicalHistory(x_boards, y_boards, canonicalBoard.pieces,
+    canonicalHistory, x_boards, y_boards = game.getCanonicalHistory(x_boards, y_boards, canonicalBoard,
                                                                     player_board)
 
     x_boards, y_boards = y_boards, x_boards
@@ -124,10 +312,22 @@ def play(command):
     else:
         # parse square
         square_str = command.split()[-1]
+        letters = ["a", "b", "c", "d", "e", "f", "g"]
+        """
         col = ord(square_str[0]) - ord('A') + 1 - (1 if ord(square_str[0]) > ord('I') else 0)
         row_count = int(square_str[1:]) if len(square_str[1:]) > 1 else ord(square_str[1:]) - ord('0')
+        """
+        if square_str[0] in letters:
+            col = letters.index(square_str[0])
+        else:
+            col = int(square_str[0])
+        if square_str[1] in letters:
+            row = letters.index(square_str[1])
+        else:
+            row = int(square_str[1])
+        action = (row*7) + col
         # row = (BOARD_RANGE - 1) - row_count
-        action = ((config["board_size"] - row_count) * config["board_size"]) + (col - 1)
+        # action = ((config["board_size"] - row_count) * config["board_size"]) + (col - 1)
         # square = row * BOARD_RANGE + col
 
     # make move on board
@@ -136,15 +336,47 @@ def play(command):
     # Update histories to prepare for next move
     canonicalBoard = game.getCanonicalForm(board, curPlayer)
     player_board = (c_boards[0], c_boards[1]) if curPlayer == 1 else (c_boards[1], c_boards[0])
-    canonicalHistory, x_boards, y_boards = game.getCanonicalHistory(x_boards, y_boards, canonicalBoard.pieces,
+    canonicalHistory, x_boards, y_boards = game.getCanonicalHistory(x_boards, y_boards, canonicalBoard,
                                                                     player_board)
 
     # Player will switch, so switch x and y boards (current/opposing player histories)
     x_boards, y_boards = y_boards, x_boards
 
-def get_score():
-    global board
-    return game.getScore(board)
+def loadsgf(command):
+    #Get SGF file as text
+    parsed_cmd = command.split(" ")
+    filepath = parsed_cmd[1]
+    
+    with open(filepath) as f:
+        temp = f.read()
+    temp = temp.replace("(", "").replace(")", "")
+
+    #Get a list of moves and puzzle answer from the SGF file
+    sgf_info = temp.split(';')
+    sgf_info = sgf_info[2:]
+    moves = []
+    ans = []
+    for elt in sgf_info:
+        if "C" in elt:
+            finalElt = elt.split("C")
+            elt = finalElt[0]
+
+            raw_ans = finalElt[1].split(" ")[1]
+            ans = raw_ans.split(",")
+            ans[1] = ans[1].replace("]", "")        
+
+        parsed_move = elt.split("[")
+        parsed_move[1] = parsed_move[1].replace("]", "")
+        moves.append(parsed_move)
+
+    #get current/next player
+    curr_player = "B" if moves[-1][0] == "W" else "W"
+    prev_player = "B" if curr_player == "W" else "W"
+    #return all information from SGF file
+
+    for m in moves:
+        fake_cmd = "play " + m[0] + " " + m[1]
+        play(fake_cmd)
 
 # GTP communication protocol
 def gtp():
@@ -177,13 +409,16 @@ def gtp():
             play(command)
             print('=\n')
         elif 'genmove' in command:
-            print('=', generate_move(BLACK if command.split()[-1] == 'B' else WHITE) + '\n')
-        elif 'getscore' in command:
-            print('=', get_score())
+            print('=', generate_move(BLACK if command.split()[-1].lower() == 'b' else WHITE) + '\n')
+        elif 'loadsgf' in command:
+            loadsgf(command)
+            print('=\n')
         elif 'quit' in command:
+            generate_video()
             sys.exit()
         else:
             print('=\n')  # skip unsupported commands
 
 
 gtp()
+
