@@ -73,7 +73,7 @@ class GoGame(Game):
     def getGameEndedSelfPlay(self, board, player, iteration, returnScore=False, disable_resignation_threshold=False):
         winner = 0
         (score_black, score_white) = self.getScore(board)
-        by_score = 0.5 * (board.n * board.n + board.komi)
+        by_score = 0.5 * ((board.n * board.n) + board.komi)
 
         # determine maximum number of allowed moves
         """max_moves = 0
@@ -88,7 +88,7 @@ class GoGame(Game):
             max_moves = 75
         else:"""
             # iteration 31 and higher
-        max_moves = 98
+        """max_moves = 98
 
         # limit games to 98 moves, determine winner based on score of current board
         if len(board.history) >= max_moves:
@@ -104,10 +104,10 @@ class GoGame(Game):
                     winner = -1
             else:
                 # Tie
-                winner = 1e-4
+                winner = 1e-4"""
 
         # End game "normally"
-        elif not disable_resignation_threshold and len(board.history) > 1:
+        if not disable_resignation_threshold and len(board.history) > 1:
             # Check if both players passed in succession
             if board.history[-1] is None and board.history[-2] is None:
                 if score_black > score_white:
@@ -125,6 +125,21 @@ class GoGame(Game):
                     winner = 1e-4
             # score threshold is enabled, games can be ended early based on score
             elif score_black > by_score or score_white > by_score:
+                if score_black > score_white:
+                    if player == 1:
+                        winner = 1
+                    else:
+                        winner = -1
+                elif score_white > score_black:
+                    if player == -1:
+                        winner = 1
+                    else:
+                        winner = -1
+                else:
+                    # Tie
+                        winner = 1e-4
+            # allow maximum number of moves to end game in self play scoring
+            if len(board.history) >= 98:
                 if score_black > score_white:
                     if player == 1:
                         winner = 1
