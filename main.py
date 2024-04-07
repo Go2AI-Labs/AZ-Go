@@ -9,6 +9,8 @@ from definitions import CONFIG_PATH, DIS_EXAMPLE_PATH
 
 sys.setrecursionlimit(5000)
 
+# TODO: MARKED FOR DELETION, replaced by start_main.py
+
 if __name__ == "__main__":
 
     config = ConfigHandler(CONFIG_PATH)

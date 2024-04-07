@@ -18,6 +18,7 @@ num_parallel_games: 15              # number of games for worker server to play 
 
 # console parameters
 display: 0                    # 0 -> display bar | 1 -> display board
+debug_mode: false              # enable debug output
 
 # MCTS parameters
 num_MCTS_simulations: 300     # number of moves for MCTS to simulate
@@ -30,7 +31,7 @@ c_puct: 1.0                   # hyperparameter to control the degree of explorat
 # Neural network parameters
 network_type: RES             # "RES" -> Use resnet | "CNN" -> use convolutional neural network
 optimizer_type: SGD           # "SGD" -> w/ momentum of 0.9 | "Adam" -> w/ weight decay of 5e-4
-max_length_of_queue: 5000000   # max number of moves to train neural network with
+max_length_of_queue: 500000   # max number of moves to train neural network with
 max_num_iterations_in_train_example_history: 4  # max number of iterations to train the neural network with
 learning_rate: 0.0001         # learning rate to use without cosine annealing
 use_cosine_annealing: false    # whether or not to use cosine annealing

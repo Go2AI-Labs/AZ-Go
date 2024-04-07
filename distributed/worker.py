@@ -1,79 +1,137 @@
+import multiprocessing as mp
 import os
+import time
 from collections import deque
-from datetime import datetime
+from random import randint
 
+import numpy as np
+
+from definitions import CONFIG_PATH, CHECKPOINT_PATH, SENS_CONFIG_PATH, DIS_SELF_PLAY_PATH, DIS_ARENA_PATH
+from go.go_game import GoGame
+from mcts import MCTS
+from neural_network.neural_net_wrapper import NNetWrapper
+from distributed.ssh_connector import SSHConnector
+from distributed.status_manager import StatusManager, Status
+from training.arena import Arena
 from training.coach import Coach
-from go.go_game import GoGame as Game
-from neural_network.neural_net_wrapper import NNetWrapper as nn
 from utils.config_handler import ConfigHandler
-from definitions import CONFIG_PATH, SENS_CONFIG_PATH, DIS_MODEL_PATH, DIS_EXAMPLE_PATH
-from ssh_connector import SSHConnector
-from utils.data_serializer import save_to_disk
-
-"""
-The Worker class defines the behavior of a single worker thread used to generate training examples during the 
-self play portion of the learning life cycle. Many worker threads can be created in start_worker.py
-according to the parameter "num_parallel_games" defined in configs/config.yaml.
-"""
+from utils.data_serializer import save_obj_to_disk, save_json_to_disk
 
 
 class Worker:
-
     def __init__(self):
         self.config = ConfigHandler(CONFIG_PATH)
         self.sensitive_config = ConfigHandler(SENS_CONFIG_PATH)
+        self.status_manager = StatusManager()
         self.connector = SSHConnector()
+        self.status = None
 
-    def play_games(self, game, nnet, config, identifier, iteration, disable_resignation_threshold):
+    def start(self):
         """
-        Plays a set number of games determined by the "num_games_per_distributed_batch" variable in configs/config.yaml.
-        Uses "Coach" (reference to training/coach.py) and locally saves game data to disk.
-        Returns file_name and file_path of the single saved game.
+        Main function for switching between self play, arena, and NN training for worker node.
+        Periodically check status of main server and execute needed function.
         """
+        while True:
+            self.status = self.status_manager.check_status()
+
+            if self.status == Status.SELF_PLAY.value:
+                print("Status: Self Play")
+                self.connector.download_best_model()
+                self.execute_self_play()
+
+            elif self.status == Status.NEURAL_NET_TRAINING.value:
+                print("Status: NN Training")
+                time.sleep(30)  # in seconds
+
+            elif self.status == Status.ARENA.value:
+                print("Status: Arena")
+                self.connector.download_arena_models()
+                self.execute_arena()
+
+            else:
+                print("ERROR STATUS NOT FOUND")
+                raise Exception()
+
+    def execute_arena(self):
+        """
+        Helper function for handling multiprocessing pool for arena as specified in config.yaml
+        """
+        with mp.Pool(self.config["num_parallel_games"]) as pool:
+            for i in range(self.config["num_parallel_games"]):
+                pool.apply_async(self.handle_arena_lifecycle)
+
+            pool.close()
+            pool.join()
+
+    def handle_arena_lifecycle(self):
+        """
+        Function at thread level
+        """
+        go_game = GoGame(self.config['board_size'])
+        previous_net = NNetWrapper(game=go_game, config=self.config)
+        previous_net.load_checkpoint(CHECKPOINT_PATH, 'previous_net.pth.tar')
+        current_net = NNetWrapper(game=go_game, config=self.config)
+        current_net.load_checkpoint(CHECKPOINT_PATH, 'current_net.pth.tar')
+        previous_mcts = MCTS(game=go_game, nnet=previous_net, config=self.config)
+        current_mcts = MCTS(game=go_game, nnet=current_net, config=self.config)
+
+        arena = Arena(lambda x, y, z, a, b, c, d: np.argmax(previous_mcts.getActionProb(x, y, z, a, b, c, d, temp=0)),
+                      lambda x, y, z, a, b, c, d: np.argmax(current_mcts.getActionProb(x, y, z, a, b, c, d, temp=0)),
+                      go_game, self.config)
+
+        prev_wins, current_wins, draws, outcomes, total_played = arena.playGames(2)
+        outcomes = {"current_wins": prev_wins, "previous_wins": current_wins, "ties": draws,
+                    "games_played": total_played}
+        file_name = (f'{self.sensitive_config["worker_machine_tag"]}_{randint(1, 1000)}' + '.json')
+        local_path = os.path.join(DIS_ARENA_PATH, file_name)
+        save_json_to_disk(data=outcomes, local_path=local_path)
+        # self.connector.upload_arena_outcomes(local_path, file_name)
+
+        # TEMP
+        # c = Coach(go_game, previous_net, self.config)
+        # c.create_sgf_files_for_games(games=outcomes, iteration=0)
+
+    def execute_self_play(self):
+        """
+        Helper function for handling multiprocessing pool for self play as specified in config.yaml
+        """
+        with mp.Pool(self.config["num_parallel_games"]) as pool:
+            for i in range(self.config["num_parallel_games"]):
+                pool.apply_async(self.handle_self_play_lifecycle)
+
+            pool.close()
+            pool.join()
+
+    def handle_self_play_lifecycle(self):
+        """
+        Initializes a game object and loads the neural network located at CHECKPOINT_PATH/best.pth.tar
+        (note CHECKPOINT_PATH is defined in definitions.py). Then, plays a single game using the play_game function.
+        The results of the game are uploaded and subsequently deleted from the local machine.
+        """
+        go_game = GoGame(self.config['board_size'])
+        neural_net = NNetWrapper(go_game, self.config)
+        neural_net.load_checkpoint(CHECKPOINT_PATH, 'best.pth.tar')
+        local_path, file_name = self.execute_single_self_play_game(go_game=go_game, neural_net=neural_net)
+        print("Game Completed.")
+        self.connector.upload_self_play_examples(local_path, file_name)
+        os.remove(local_path)
+
+    def execute_single_self_play_game(self, go_game, neural_net):
         train_examples_history = []
-        iteration_train_examples = deque([], maxlen=config["max_length_of_queue"])
+        iteration_train_examples = deque([], maxlen=self.config["max_length_of_queue"])
 
-        for eps in range(config["num_games_per_distributed_batch"]):
-            coach = Coach(game, nnet, config)
-            iteration_train_examples += coach.executeEpisode(iteration=iteration,
-                                                             disable_resignation_threshold=disable_resignation_threshold)
+        for eps in range(self.config["num_games_per_distributed_batch"]):
+            coach = Coach(go_game, neural_net, self.config)
+            iteration_train_examples += coach.executeEpisode(iteration=0,
+                                                             disable_resignation_threshold=False)
 
         # save the generated train examples in their own file
         train_examples_history.append(iteration_train_examples)
-        timestamp = datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
 
-        file_name = (f'{self.sensitive_config["worker_machine_tag"]}_checkpoint_' + str(timestamp) + "_proc_" + str(
-            identifier) + '.pth.tar')
-        file_path = os.path.join(DIS_EXAMPLE_PATH, file_name)
+        file_name = (f'{self.sensitive_config["worker_machine_tag"]}_{randint(1, 1000)}' + '.pth.tar')
+        local_path = os.path.join(DIS_SELF_PLAY_PATH, file_name)
 
         # save game data to disk
-        save_to_disk(train_examples_history, file_path)
+        save_obj_to_disk(train_examples_history, local_path)
 
-        return file_name, file_path
-
-    def start(self, identifier, iteration, disable_resignation_threshold):
-        """
-        Initializes a game object and loads the neural network located at DIS_MODEL_PATH/best.pth.tar
-        (note DIS_MODEL_PATH is defined in definitions.py). Then, plays a single game using the play_game function.
-        The results of the game are uploaded and subsequently deleted from the local machine.
-        """
-        game = Game(self.config["board_size"])
-        neural_network = nn(game, self.config)
-
-        # Load recent model into nnet
-        neural_network.load_checkpoint(DIS_MODEL_PATH, 'best.pth.tar')
-
-        print(f"Starting game on process: {identifier}")
-
-        # Generate training examples
-        file_name, file_path = self.play_games(game=game, nnet=neural_network, config=self.config, identifier=identifier,
-                                               iteration=iteration,
-                                               disable_resignation_threshold=disable_resignation_threshold)
-
-        print(
-            f"Game complete on process {identifier}. Sending examples to {self.sensitive_config['master_server_address']}")
-
-        self.connector.upload_game(file_name, file_path)
-
-        # delete file from the local machine
-        os.remove(file_path)
+        return local_path, file_name

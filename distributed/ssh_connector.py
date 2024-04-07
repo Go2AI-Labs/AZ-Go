@@ -1,7 +1,7 @@
 from fabric.connection import Connection
-from utils.config_handler import ConfigHandler
 
-from definitions import SENS_CONFIG_PATH, DIS_MODEL_PATH
+from definitions import SENS_CONFIG_PATH, CHECKPOINT_PATH, DIS_STATUS_PATH
+from utils.config_handler import ConfigHandler
 
 """
 SSHConnector creates a uniform protocol for SSH interactions between the main server and
@@ -12,19 +12,51 @@ a worker server using Fabric.
 class SSHConnector:
     def __init__(self):
         self.sensitive_config = ConfigHandler(SENS_CONFIG_PATH)
+        self.main_path = self.sensitive_config['main_directory']
+        self.main_username = self.sensitive_config["main_username"]
+        self.main_server_address = self.sensitive_config['main_server_address']
 
-    def upload_game(self, file_name, local_path):
-        # assumes remote_path is on a LINUX machine
-        remote_path = self.sensitive_config["master_directory_to_send_examples_to"] + "/" + file_name
-        with Connection(self.sensitive_config["master_server_address"], self.sensitive_config["master_username"]) as c:
+    # send worker info to main
+    # previous_net.pth.tar
+    # current_net.pth.tar
+    def upload_arena_outcomes(self, local_path, file_name):
+        remote_path = self.main_path + "/distributed/arena/" + file_name
+        with Connection(self.main_server_address, self.main_username) as c:
             c.sftp().put(local_path, remote_path)
 
-    def download_model(self):
-        with Connection(self.sensitive_config["master_server_address"], self.sensitive_config["master_username"]) as c:
+    def upload_self_play_examples(self, local_path, file_name):
+        # assumes remote_path is on a LINUX machine
+        remote_path = self.main_path + "/distributed/self_play/" + file_name
+        with Connection(self.main_server_address, self.main_username) as c:
+            c.sftp().put(local_path, remote_path)
+
+    # needed for worker self play
+    def download_best_model(self):
+        with Connection(self.main_server_address, self.main_username) as c:
             try:
-                c.get(self.sensitive_config["master_directory_to_get_models_from"] + "/best.pth.tar",
-                      DIS_MODEL_PATH + "best.pth.tar")
+                c.get(self.main_path + "logs/checkpoints/best.pth.tar", CHECKPOINT_PATH + "/")
                 return True
             except FileNotFoundError:
-                print(f"No best.pth.tar file found at {self.sensitive_config['master_directory_to_get_models_from'] + '/best.pth.tar'}")
+                print(f"No best.pth.tar found at {self.main_path + 'logs/checkpoints/best.pth.tar'}")
+                return False
+
+    # needed for worker arena
+    def download_arena_models(self):
+        with Connection(self.main_server_address, self.main_username) as c:
+            try:
+                c.get(self.main_path + "logs/checkpoints/previous_net.pth.tar", CHECKPOINT_PATH + "/")
+                c.get(self.main_path + "logs/checkpoints/current_net.pth.tar", CHECKPOINT_PATH + "/")
+                return True
+            except FileNotFoundError:
+                print(f"No previous_net.pth.tar found at {self.main_path + 'logs/checkpoints/previous_net.pth.tar'}")
+                return False
+
+    # needed for worker flow
+    def download_status(self):
+        with Connection(self.main_server_address, self.main_username) as c:
+            try:
+                c.get(self.main_path + "distributed/status.txt", DIS_STATUS_PATH)
+                return True
+            except FileNotFoundError:
+                print(f"No status.txt found at {self.main_path + 'distributed/status.txt'}")
                 return False
