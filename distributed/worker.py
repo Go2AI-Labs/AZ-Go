@@ -7,16 +7,15 @@ from random import randint
 import numpy as np
 
 from definitions import CONFIG_PATH, CHECKPOINT_PATH, SENS_CONFIG_PATH, DIS_SELF_PLAY_PATH, DIS_ARENA_PATH
+from distributed.ssh_connector import SSHConnector
+from distributed.status_manager import StatusManager, Status
 from go.go_game import GoGame
 from mcts import MCTS
 from neural_network.neural_net_wrapper import NNetWrapper
-from distributed.ssh_connector import SSHConnector
-from distributed.status_manager import StatusManager, Status
 from training.arena import Arena
-from training.coach import Coach
+from training.self_play_manager import SelfPlayManager
 from utils.config_handler import ConfigHandler
 from utils.data_serializer import save_obj_to_disk, save_json_to_disk
-from training.self_play_manager import SelfPlayManager
 
 
 class Worker:
@@ -106,6 +105,10 @@ class Worker:
 
         return local_path, file_name
 
+    """
+    For arena, we should create 1 MCTS that is parallelized across threads for a single game,
+    NOT multiple arena games at once... a bit different than self_play
+    """
     def start_arena(self):
         """
         Helper function for handling multiprocessing pool for arena as specified in config.yaml
@@ -139,7 +142,7 @@ class Worker:
         file_name = (f'{self.sensitive_config["worker_machine_tag"]}_{randint(1, 1000)}' + '.json')
         local_path = os.path.join(DIS_ARENA_PATH, file_name)
         save_json_to_disk(data=outcomes, local_path=local_path)
-        # self.connector.upload_arena_outcomes(local_path, file_name)
+        self.connector.upload_arena_outcomes(local_path, file_name)
 
         # TEMP
         # c = Coach(go_game, previous_net, self.config)

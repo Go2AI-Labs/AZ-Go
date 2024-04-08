@@ -10,7 +10,7 @@ from utils.data_serializer import delete_directory_contents
 from utils.print_debug import print_debug
 
 
-class DistributedCoach:
+class Overseer:
 
     def __init__(self):
         self.config = ConfigHandler(CONFIG_PATH)
@@ -65,7 +65,7 @@ class DistributedCoach:
             # MARK: ARENA
             # send out signal for workers to play arena games
             # clean up old arena outcomes
-            # delete_directory_contents(DIS_ARENA_PATH)
+            delete_directory_contents(DIS_ARENA_PATH)
             print_debug(f"Wiped arena folder at {DIS_ARENA_PATH}")
 
             self.status_manager.announce_status(Status.ARENA.value)
