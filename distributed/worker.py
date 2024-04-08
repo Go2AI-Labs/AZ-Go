@@ -70,6 +70,8 @@ class Worker:
         Initializes a game object and loads the neural network located at CHECKPOINT_PATH/best.pth.tar
         (note CHECKPOINT_PATH is defined in definitions.py). Then, plays a single game using the play_game function.
         The results of the game are uploaded and subsequently deleted from the local machine.
+        According to the paper, each game of training (self-play) should start with a fresh MCTS tree.
+        See: https://github.com/suragnair/alpha-zero-general/discussions/24
         """
         go_game = GoGame(self.config['board_size'])
         neural_net = NNetWrapper(go_game, self.config)
@@ -143,7 +145,3 @@ class Worker:
         local_path = os.path.join(DIS_ARENA_PATH, file_name)
         save_json_to_disk(data=outcomes, local_path=local_path)
         self.connector.upload_arena_outcomes(local_path, file_name)
-
-        # TEMP
-        # c = Coach(go_game, previous_net, self.config)
-        # c.create_sgf_files_for_games(games=outcomes, iteration=0)
