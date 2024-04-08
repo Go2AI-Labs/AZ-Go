@@ -4,6 +4,9 @@ import sys
 
 import numpy as np
 
+from definitions import CONFIG_PATH
+from utils.config_handler import ConfigHandler
+
 
 class MCTS:
     """
@@ -19,10 +22,10 @@ class MCTS:
             except ValueError:
                 return size - 1  # subtract current frame
 
-    def __init__(self, game, nnet, config):
+    def __init__(self, game, nnet):
         self.game = game
         self.nnet = nnet
-        self.config = config
+        self.config = ConfigHandler(CONFIG_PATH)
         self.Qsa = {}  # stores Q values for s,a (as defined in the paper)
         self.Nsa = {}  # stores #times edge s,a was visited
         self.Ns = {}  # stores #times board s was visited
@@ -31,7 +34,8 @@ class MCTS:
         self.Es = {}  # stores game.getGameEnded ended for board s
         self.Vs = {}  # stores game.getValidMoves for board s
 
-    def getActionProb(self, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, is_self_play, num_sims, temp=1):
+    def getActionProb(self, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, is_self_play, num_sims,
+                      temp=1):
         """
         This function performs numMCTSSims simulations of MCTS starting from
         canonicalBoard.
@@ -40,7 +44,7 @@ class MCTS:
             probs: a policy vector where the probability of the ith action is
                    proportional to Nsa[(s,a)]**(1./temp)
         """
-        #removed min(num_MCTS_sims, smartsimnum)
+        # removed min(num_MCTS_sims, smartsimnum)
         for i in range(num_sims):
             # print("\n--SIM #", i, "--")
             self.search(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, 1, True, is_self_play)
@@ -100,7 +104,7 @@ class MCTS:
 
             probs = [0 for i in range(len(counts))]
             probs[bestA] = 1
-            
+
             # Unmasking code
             # Get full move "probabilities" instead of masking
             # probs = [x / float(sum(counts)) for x in counts]
@@ -141,7 +145,7 @@ class MCTS:
         Returns:
             v: the negative of the value of the current canonicalBoard
         """
-        #print("Call #", calls, ": History length - ", len(canonicalBoard.history), " Is self play - ", is_self_play)
+        # print("Call #", calls, ": History length - ", len(canonicalBoard.history), " Is self play - ", is_self_play)
 
         # check if both players passed
         """if len(canonicalBoard.history) > 1:
@@ -176,10 +180,10 @@ class MCTS:
             canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(copy.deepcopy(x_boards),
                                                                                  copy.deepcopy(y_boards),
                                                                                  canonicalBoard, player_board)
-        
+
         # If current state is a leaf node, add this to the tree
         if s not in self.Ps:
-            #print("leaf node")
+            # print("leaf node")
             self.Ps[s], v = self.nnet.predict(canonicalHistory)  # changed from board.pieces
             valids = self.game.getValidMoves(canonicalBoard, 1, is_self_play)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves

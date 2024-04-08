@@ -35,7 +35,7 @@ class Coach:
         self.nnet = nnet
         self.pnet = self.nnet.__class__(self.game, config)  # the competitor network
         self.config = config
-        self.mcts = MCTS(self.game, self.nnet, self.config)
+        self.mcts = MCTS(self.game, self.nnet)
         self.trainExamplesHistory = []  # history of examples from config["max_num_iterations_in_train_example_history"] latest iterations
         self.skipFirstSelfPlay = False  # can be overriden in loadTrainExamples()
 
@@ -121,9 +121,14 @@ class Coach:
                 print("BOARD updated:")
                 print(display(board))
                 # get current game result
-            r, score = self.game.getGameEndedSelfPlay(board.copy(), self.curPlayer, iteration=iteration,
-                                                      returnScore=True,
-                                                      disable_resignation_threshold=disable_resignation_threshold)
+
+            print(f"{board.copy()}")
+            print()
+            print(f"{self.curPlayer}")
+
+            r, score = self.game.getGameEndedSelfPlay(board.copy(), self.curPlayer,
+                                                      return_score=True,
+                                                      enable_resignation_threshold=not disable_resignation_threshold)
             if self.config["display"] == 1:
                 print(f"Current score: b {score[0]}, W {score[1]}")
 
