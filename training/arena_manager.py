@@ -7,10 +7,12 @@ from utils.config_handler import ConfigHandler
 
 class ArenaManager:
 
-    def __init__(self, player1, player2):
+    def __init__(self, player1, player2, mcts1, mcts2):
         self.config = ConfigHandler(CONFIG_PATH)
         self.player1 = player1
         self.player2 = player2
+        self.mcts1 = mcts1
+        self.mcts2 = mcts2
         self.game = GoGame(self.config["board_size"])
 
     def play_games(self, num_games):
@@ -50,6 +52,9 @@ class ArenaManager:
         return one_wins, two_wins, draws
 
     def play_game(self):
+
+        self.clear_MCTS()
+
         print("Play Game Started")
         players = [self.player2, None, self.player1]
         cur_player = 1
@@ -67,8 +72,8 @@ class ArenaManager:
             canonical_history, x_boards, y_boards = self.game.getCanonicalHistory(x_boards, y_boards,
                                                                                   canonical_board, player_board)
 
-            action = players[cur_player + 1](canonical_board, canonical_history, x_boards, y_boards, player_board, False,
-                                            self.config["num_full_search_sims"])
+            action = players[cur_player + 1](self.game.getCanonicalForm(board, cur_player))
+
             player_name = "B" if cur_player == 1 else "W"
             action_history.append(f";{player_name}[{self.game.action_space_to_GTP(action)}]")
             print(action_history)
@@ -77,3 +82,9 @@ class ArenaManager:
             x_boards, y_boards = y_boards, x_boards
 
         return self.game.getGameEndedArena(board, 1)
+
+    def clear_MCTS(self):
+        if self.mcts1:
+            self.mcts1.clear()
+        if self.mcts2:
+            self.mcts2.clear()
