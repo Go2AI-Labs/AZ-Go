@@ -62,6 +62,70 @@ class Board:
         self.current_hash = np.uint64(0)
         self.previous_hashes = set()
 
+        self.x_boards = [np.zeros((self.n, self.n)) for _ in range(8)]
+        self.y_boards = [np.zeros((self.n, self.n)) for _ in range(8)]
+        self.current_player = 1
+    
+    def get_canonical_history(self):
+        """
+        Method to construct the game history from the perspective of the current player
+        Returns a 19xNxN matrix containing:
+            - The current/opposing player's stones for the last 8 timesteps
+            ----> 16 layers total -- 8 for each player
+            - The 'sensibility layer'
+            - Two layers encoding the current player/opposing player (all 1s for black, all 0s for white) 
+        """
+        history = []
+        canonical_board = np.where(self.pieces != 0, self.pieces*self.current_player, 0)
+        #new_x = np.copy(canonical_board)
+        new_x = np.where(canonical_board == 1, 1, 0 )
+        self.x_boards.append(new_x)
+        new_y = np.where(canonical_board == -1, 1, 0)
+        self.y_boards.append(new_y)
+
+        # Remove the oldest board state from history
+        self.x_boards = self.x_boards[1:]
+        self.y_boards = self.y_boards[1:]
+
+        for i in range(len(self.x_boards) - 1, -1, -1):
+            history.append(self.x_boards[i])
+            history.append(self.y_boards[i])
+        history.append(self.make_sensibility_layer())
+        if self.current_player == 1:
+            history.append(np.ones((self.n,self.n)))
+            history.append(np.zeros((self.n,self.n)))
+        else:
+            history.append(np.zeros((self.n,self.n)))
+            history.append(np.ones((self.n,self.n)))
+        return history
+
+    def make_sensibility_layer(self):
+        """
+        Make the 'sensibility layer' to be used as part of the input
+        to the NNet
+        This is a NxN matrix marking all legal moves that do not fill 
+        in the current player's own eyes
+        """
+        legal_and_not_eye = np.zeros((self.n, self.n))
+        legal_moves = self.get_legal_moves(self.current_player)
+        for i in range(self.n):
+            for j in range(self.n):
+                if not self.is_eye((i, j), self.current_player) and ((i, j) in legal_moves):
+                    legal_and_not_eye[i, j] = 1
+        return legal_and_not_eye
+    
+    def stringRepresentation(self):
+        canonical_board = np.where(self.pieces != 0, self.pieces*self.current_player, 0)
+        return np.array(canonical_board).tostring()
+
+    def rotate_history(self, r, history):
+        for i in range(len(history)):
+            history[i] = np.rot90(history[i], r%4)
+            if r >= 4:
+                history[i] = np.fliplr(history[i])
+        return history
+
+
     # add [][] indexer syntax to the Board
     def __getitem__(self, index):
         return self.pieces[index]
@@ -202,6 +266,9 @@ class Board:
         other.enforce_superko = self.enforce_superko
         other.current_hash = self.current_hash.copy()
         other.previous_hashes = self.previous_hashes.copy()
+        other.x_boards = self.x_boards.copy()
+        other.y_boards = self.y_boards.copy()
+        other.current_player = self.current_player
 
         # update liberty and group sets.
         #
@@ -528,6 +595,9 @@ class Board:
                 if color == WHITE:
                     self.passes_white += 1
             self.history.append(action)
+            # A new move has been played, so update variables to reflect the NEW current player
+            self.current_player = -1*self.current_player
+            self.x_boards, self.y_boards = self.y_boards, self.x_boards
         else:
             raise IllegalMove(str(action) + ',' + str(color))
 

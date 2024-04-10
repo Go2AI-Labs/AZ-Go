@@ -32,44 +32,50 @@ class SelfPlayManager:
             turn_count += 1
 
             # Get the current board, current player's board, and game history at current state
-            canonical_board = self.go_game.getCanonicalForm(board, current_player)
+            #canonical_board = self.go_game.getCanonicalForm(board, current_player)
 
-            player_board = (c_boards[0], c_boards[1]) if current_player == 1 else (c_boards[1], c_boards[0])
-            canonicalHistory, x_boards, y_boards = self.go_game.getCanonicalHistory(x_boards, y_boards,
-                                                                                    canonical_board, player_board)
+            #player_board = (c_boards[0], c_boards[1]) if current_player == 1 else (c_boards[1], c_boards[0])
+            #canonicalHistory, x_boards, y_boards = self.go_game.getCanonicalHistory(x_boards, y_boards,
+            #                                                                        canonical_board, player_board)
             # set temperature variable and get move probabilities
             temp = int(turn_count < self.config["temperature_threshold"])
 
             # TODO: Is heuristic for full search sims vs fast sims acceptable?
             if random.random() <= 0.25:
-                num_sims = self.config["num_full_search_sims"]
-                use_noise = True
+                """num_sims = self.config["num_full_search_sims"]
+                use_noise = True"""
+                is_full_search = True
             else:
-                num_sims = self.config["num_fast_search_sims"]
-                use_noise = False
+                """num_sims = self.config["num_fast_search_sims"]
+                use_noise = False"""
+                is_full_search = False
 
-            pi = self.mcts.getActionProb(canonical_board, canonicalHistory, x_boards, y_boards, player_board, use_noise,
-                                         num_sims, temp=temp)
-
-            # get different symmetries/rotations of the board if full search was done
-            if num_sims == self.config["num_full_search_sims"]:
-                sym = self.go_game.getSymmetries(canonicalHistory, pi)
-                for b, p in sym:
-                    game_train_examples.append([b, current_player, p, None])
+            """pi = self.mcts.getActionProb(canonical_board, canonicalHistory, x_boards, y_boards, player_board, use_noise,
+                                         num_sims, temp=temp)"""
+        
+            pi = self.mcts.getActionProbability(board, temp=temp, is_full_search=is_full_search)
 
             # choose a move
-            if turn_count < self.config["temperature_threshold"]:
+            if temp == 1:
                 action = np.random.choice(len(pi), p=pi)
             else:
                 action = np.argmax(pi)
+            masked_pi = [0 for _ in range(self.go_game.getActionSize())]
+            masked_pi[action] = 1
+            # get different symmetries/rotations of the board if full search was done
+            if is_full_search:
+                canonicalHistory = board.get_canonical_history()
+                sym = self.go_game.getSymmetries(canonicalHistory, masked_pi)
+                for b, p in sym:
+                    game_train_examples.append([b, board.current_player, p, None])
 
             # play the chosen move
-            board, current_player = self.go_game.getNextState(board, current_player, action)
+            board = self.go_game.getNextState(board, action)
 
-            r, score = self.go_game.getGameEndedSelfPlay(board.copy(), current_player, return_score=True,
+            r, score = self.go_game.getGameEndedSelfPlay(board.copy(), return_score=True,
                                                          enable_resignation_threshold=True)
 
             print_debug(f"Score: {score}, R: {r}")
 
         # return game result
-        return [(x[0], x[2], r * ((-1) ** (x[1] != current_player))) for x in game_train_examples]
+        return [(x[0], x[2], r * ((-1) ** (x[1] != board.current_player))) for x in game_train_examples]

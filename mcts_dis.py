@@ -13,10 +13,11 @@ class MCTSDis:
     This class handles the MCTS tree.
     """
 
-    def __init__(self, game, nnet):
+    def __init__(self, game, nnet, is_self_play):
         self.game = game
         self.nnet = nnet
         self.config = ConfigHandler(CONFIG_PATH)
+        c_puct = self.config["c_puct"]
 
         self.Qsa = {}  # stores Q values for s,a (as defined in the paper)
         self.Nsa = {}  # stores #times edge s,a was visited
@@ -26,7 +27,10 @@ class MCTSDis:
         self.Es = {}  # stores game.getGameEnded ended for board s
         self.Vs = {}  # stores game.getValidMoves for board s
 
-    def getActionProb(self, canonical_board, temp=1):
+        self.is_self_play = is_self_play
+        self.is_root = True
+
+    def getActionProb(self, board, temp=1, is_full_search=True):
         """
         This function performs numMCTSSims simulations of MCTS starting from
         canonicalBoard.
@@ -35,25 +39,34 @@ class MCTSDis:
             probs: a policy vector where the probability of the ith action is
                    proportional to Nsa[(s,a)]**(1./temp)
         """
-        for i in range(self.config["num_MCTS_simulations"]):
-            self.search(canonical_board)
+        # Get the proper number of simulations to be used with MCTS
+        if is_full_search:
+            num_sims = self.config["num_full_search_sims"]
+        else:
+            num_sims = self.config["num_fast_search_sims"]
 
-        s = self.game.stringRepresentation(canonical_board)
+        # Run all MCTS simulations
+        for i in range(num_sims):
+            self.restore_root_state()
+            self.search(board)
+
+        #s = self.game.stringRepresentation(canonical_board)
+        s = board.getStringRepresentation()
         counts = np.array([self.Nsa[(s, a)] if (s, a) in self.Nsa else 0 for a in range(self.game.getActionSize())])
-
+        # Temp == 0 --> Return the action with the highest visit count
         if temp == 0:
             bestAs = np.array(np.argwhere(counts == np.max(counts))).flatten()
             bestA = np.random.choice(bestAs)
             probs = [0] * len(counts)
             probs[bestA] = 1
             return probs
-
+        # Temp != 0 --> Return a random action
         counts = [x ** (1. / temp) for x in counts]
         counts_sum = float(sum(counts))
         probs = [x / counts_sum for x in counts]
         return probs
 
-    def search(self, canonical_board):
+    def search(self, board):
         """
         This function performs one iteration of MCTS. It is recursively called
         till a leaf node is found. The action chosen at each node is one that
@@ -73,20 +86,22 @@ class MCTSDis:
             v: the negative of the value of the current canonicalBoard
         """
 
-        s = self.game.stringRepresentation(canonical_board)
-        c_puct = self.config["c_puct"]
+        s = board.stringRepresentation()
 
+        # Check if simulation has reached a terminal state
         if s not in self.Es:
-            self.Es[s] = self.game.getGameEnded(canonical_board, 1)
+            self.Es[s] = self.game.getGameEndedSelfPlay(board)
         if self.Es[s] != 0 and self.Es[s] is not None:
             # terminal node
             return -self.Es[s]
+        
+        #TODO: Check if recursive base case is really needed??
 
+        # If the current node is a leaf node (and not a terminal state)
         if s not in self.Ps:
-            # leaf node
-            p, v = self.predict(canonical_board)
+            p, v = self.predict(board)
             self.Ps[s] = p
-            valids = self.game.getValidMoves(canonical_board, 1)
+            valids = self.game.getValidMoves(board)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
             if sum_Ps_s > 0:
@@ -109,23 +124,40 @@ class MCTSDis:
         cur_best = -float('inf')
         best_act = -1
 
+        # Initialize dirichlet noise to be used at the root during self play
+        if self.is_root and self.is_self_play:
+            noise = np.random.dirichlet([0.03] * len(self.game.filter_valid_moves(valids)))
+            # use to keep track of index of next move's dirichlet noise if being used
+            noise_idx = -1 
+
         # pick the action with the highest upper confidence bound
         for a in range(self.game.getActionSize()):
             if valids[a]:
-                if (s, a) in self.Qsa:
-                    u = self.Qsa[(s, a)] + c_puct * self.Ps[s][a] * math.sqrt(self.Ns[s]) / (
-                            1 + self.Nsa[(s, a)])
+                noise_idx += 1
+                if (s, a) in self.Qsa and self.Qsa[(s, a)] != None:
+                    q = self.Qsa[(s, a)]
+                    n_sa = self.Nsa[(s, a)]
+                    ns = self.Ns[s]
+                    """u = self.Qsa[(s, a)] + self.c_puct * self.Ps[s][a] * math.sqrt(self.Ns[s]) / (
+                            1 + self.Nsa[(s, a)])"""
                 else:
-                    u = c_puct * self.Ps[s][a] * math.sqrt(self.Ns[s] + EPS)  # Q = 0 ?
+                    q = 0
+                    n_sa = 0
+                    ns = self.Ns[s] + EPS
+                    """u = self.c_puct * self.Ps[s][a] * math.sqrt(self.Ns[s] + EPS)  # Q = 0 ?"""
+                p = self.Ps[s][a]
+                if self.is_root and self.is_self_play:
+                    p = (1 - 0.25) * p + 0.25 * noise[noise_idx]
+                u = q + self.cpuct * p * math.sqrt(ns) / (1 + n_sa)
 
                 if u > cur_best:
                     cur_best = u
                     best_act = a
-
         a = best_act
-        next_s, next_player = self.game.getNextState(canonical_board, 1, a)
-        next_s = self.game.getCanonicalForm(next_s, next_player)
-
+        # Returns a copy of the board state and the next player to play
+        next_s = self.game.getNextState(board, a)
+        #next_s = self.game.getCanonicalForm(next_s, next_player)
+        self.is_root = False
         v = self.search(next_s)
 
         if (s, a) in self.Qsa:
@@ -142,11 +174,13 @@ class MCTSDis:
     def predict(self, board):
         # randomly rotate and flip before network predict
         r = np.random.randint(8)
-        b = np.copy(board)
+        nnet_input = board.get_canonical_history()
+        nnet_input = board.rotate_history(r, nnet_input)
+        """b = np.copy(board)
         b = np.rot90(b, r % 4)
         if r >= 4:
-            b = np.fliplr(b)
-        pi, v = self.nnet.predict(b)
+            b = np.fliplr(b)"""
+        pi, v = self.nnet.predict(nnet_input)
 
         # policy need to rotate and flip back
         pi_board = np.reshape(pi[:-1], (self.game.n, self.game.n))
@@ -164,3 +198,9 @@ class MCTSDis:
         self.Ps = {}
         self.Es = {}
         self.Vs = {}
+
+    def restore_root_state(self):
+        self.is_root = True
+
+    def update_next_mcts_state(self):
+        self.is_root = False

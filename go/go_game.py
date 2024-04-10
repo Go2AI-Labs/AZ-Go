@@ -22,34 +22,38 @@ class GoGame(Game):
 
     def getActionSize(self):
         # return number of actions
-        return self.n * self.n + 1
+        return (self.n * self.n) + 1
 
-    def getNextState(self, board, player, action):
+    def getNextState(self, board, action):
         # if player takes action on board, return next (board,player)
         # action must be a valid move
         # print("getting next state from perspect of player {} with action {}".format(player,action))
 
         b = board.copy()
-        if action == self.n * self.n:
+        """if action == self.n * self.n:
             b.history.append(None)
-            return (b, -player)
+            return (b, -player)"""
+        if action == (self.n * self.n):
+            move = None
+        else:
+            move = (int(action / self.n), action % self.n)
 
-        move = (int(action / self.n), action % self.n)
+        b.execute_move(move, b.current_player)
 
-        b.execute_move(move, player)
-
-        return (b, -player)
+        return b
 
     # modified
-    def getValidMoves(self, board, player, is_self_play):
+    #def getValidMoves(self, board, player, is_self_play):
+    def getValidMoves(self, board):
         # return a fixed size binary vector
         valids = [0 for i in range(self.getActionSize())]
-        b = board.copy()
-        legalMoves = b.get_legal_moves(player)
+        #b = board.copy()
+        legalMoves = board.get_legal_moves(board.current_player)
         valids[-1] = 1
-
+        """
         if len(board.history) < 15 and is_self_play:
             valids[-1] = 0
+        """
 
         if len(legalMoves) == 0:
             return np.array(valids)
@@ -70,10 +74,12 @@ class GoGame(Game):
     #   - A move threshold (7 x 7 x 2 = 98)
     #   - Both players passing
     # Self play uses Tromp-Taylor rules (todo)
-    def getGameEndedSelfPlay(self, board, player, return_score=False, enable_resignation_threshold=False):
+    def getGameEndedSelfPlay(self, board, return_score=False, enable_resignation_threshold=False):
         winner = 0
         (score_black, score_white) = self.getScore(board)
         by_score = 0.5 * ((board.n * board.n) + board.komi)
+        black_difference = score_black - score_white
+        white_difference = score_white - score_black
 
         # determine maximum number of allowed moves
         """max_moves = 0
@@ -107,16 +113,17 @@ class GoGame(Game):
                 winner = 1e-4"""
 
         # End game "normally"
-        if enable_resignation_threshold and len(board.history) > 1:
+        #if enable_resignation_threshold and len(board.history) > 1:
+        if len(board.history) > 1:
             # Check if both players passed in succession
             if board.history[-1] is None and board.history[-2] is None:
                 if score_black > score_white:
-                    if player == 1:
+                    if board.current_player == 1:
                         winner = 1
                     else:
                         winner = -1
                 elif score_white > score_black:
-                    if player == -1:
+                    if board.current_player == -1:
                         winner = 1
                     else:
                         winner = -1
@@ -124,14 +131,14 @@ class GoGame(Game):
                     # Tie
                     winner = 1e-4
             # score threshold is enabled, games can be ended early based on score
-            elif score_black > by_score or score_white > by_score:
+            elif black_difference > by_score or white_difference > by_score:
                 if score_black > score_white:
-                    if player == 1:
+                    if board.current_player == 1:
                         winner = 1
                     else:
                         winner = -1
                 elif score_white > score_black:
-                    if player == -1:
+                    if board.current_player == -1:
                         winner = 1
                     else:
                         winner = -1
@@ -139,38 +146,38 @@ class GoGame(Game):
                     # Tie
                     winner = 1e-4
             # allow maximum number of moves to end game in self play scoring
-            if len(board.history) >= 98:
+            elif len(board.history) >= 98:
                 if score_black > score_white:
-                    if player == 1:
+                    if board.current_player == 1:
                         winner = 1
                     else:
                         winner = -1
                 elif score_white > score_black:
-                    if player == -1:
+                    if board.current_player == -1:
                         winner = 1
                     else:
                         winner = -1
                 else:
                     # Tie
                     winner = 1e-4
-
+        """
         # Check if both players have passed in succession
         elif len(board.history) >= 2:
             if board.history[-1] is None and board.history[-2] is None:
                 if score_black > score_white:
-                    if player == 1:
+                    if board.current_player == 1:
                         winner = 1
                     else:
                         winner = -1
                 elif score_white > score_black:
-                    if player == -1:
+                    if board.current_player == -1:
                         winner = 1
                     else:
                         winner = -1
                 else:
                     # Tie
                     winner = 1e-4
-
+        """
         if return_score:
             return winner, (score_black, score_white)
         return winner
@@ -380,11 +387,12 @@ class GoGame(Game):
                 history_syms = []
                 for k in range(len(board)):
                     newB = np.rot90(board[k], i)
-                    newPi = np.rot90(pi_board, i)
                     if j:
                         newB = np.fliplr(newB)
-                        newPi = np.fliplr(newPi)
                     history_syms.append(newB)
+                newPi = np.rot90(pi_board, i)
+                if j:
+                    newPi = np.fliplr(newPi)
                 l += [(history_syms, list(newPi.ravel()) + [pi[-1]])]
         return l
 
