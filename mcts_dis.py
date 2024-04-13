@@ -128,6 +128,11 @@ class MCTSDis:
             return -v
 
         valids = self.Vs[s][player]
+        # Check if ko changed between first time board state 's' is encountered
+        # and subsequent encounters throughout MCTS
+        if board.ko is not None:
+            invalid = board.ko[0]*7 + board.ko[1]
+            valids[invalid] = 0
         cur_best = -float('inf')
         best_act = -1
 
