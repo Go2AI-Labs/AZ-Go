@@ -22,5 +22,5 @@ engine.spec
 model.tar
 build
 dist
-./distributed/arena
-./distributed/self_play
+/distributed/arena
+/distributed/self_play

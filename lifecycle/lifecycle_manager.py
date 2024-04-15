@@ -19,7 +19,7 @@ class LifecycleManager:
 
         # TODO: Make this an entry in config.yaml
         # scanning parameters for both self_play and arena
-        self.time_between_directory_checks = 15  # in seconds, do not set less than x seconds
+        self.time_between_directory_checks = 60  # in seconds, do not set less than x seconds
 
         # self play parameters
         self.completed_games_self_play = 0

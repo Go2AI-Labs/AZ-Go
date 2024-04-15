@@ -42,20 +42,20 @@ class ArenaManager:
             # If one of the models meets the threshold for games won AND there is more than 1 game left to play,
             # return from arena play
             if (one_wins >= threshold or two_wins >= threshold):
-                print(
-                    f"\nEnded after {i + 1} games\nOne Won: {one_wins} || Two Won: {two_wins} || One %: {one_wins / self.config['acceptance_threshold']} || Two %: {two_wins / self.config['acceptance_threshold']}")
+                # print(
+                    # f"\nEnded after {i + 1} games\nOne Won: {one_wins} || Two Won: {two_wins} || One %: {one_wins / self.config['acceptance_threshold']} || Two %: {two_wins / self.config['acceptance_threshold']}")
                 return one_wins, two_wins, draws
 
             self.player1, self.player2 = self.player2, self.player1
 
-        print(f"One Wins: {one_wins}, Two Wins: {two_wins}, Draws: {draws}")
+        # print(f"One Wins: {one_wins}, Two Wins: {two_wins}, Draws: {draws}")
         return one_wins, two_wins, draws
 
     def play_game(self):
 
         self.clear_MCTS()
 
-        print("Play Game Started")
+        print("Arena Game Started")
         players = [self.player2, None, self.player1]
         cur_player = 1
         board = self.game.getInitBoard()
