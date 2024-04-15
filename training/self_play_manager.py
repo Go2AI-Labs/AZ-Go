@@ -56,6 +56,7 @@ class SelfPlayManager:
         
             pi = self.mcts.getActionProb(board, temp=temp, is_full_search=is_full_search)
 
+            # TODO: Update temp to resemble the paper's implementation
             # choose a move
             if temp == 1:
                 action = np.random.choice(len(pi), p=pi)
@@ -78,10 +79,10 @@ class SelfPlayManager:
 
             print_debug(f"Score: {score}, R: {r}")
             #print(f"Given pi = {pi}\nChose action = {action}")
-            print(display(board))
+            # print(display(board))
             bscore, wscore = self.go_game.getScore(board)
-            print(f"Score -- B: {bscore}   W: {wscore}")
-            print("\n")
+            # print(f"Score -- B: {bscore}   W: {wscore}")
+            # print("\n")
 
         # return game result
         return [(x[0], x[2], r * ((-1) ** (x[1] != board.current_player))) for x in game_train_examples]
