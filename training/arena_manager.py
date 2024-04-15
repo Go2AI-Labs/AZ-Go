@@ -71,15 +71,13 @@ class ArenaManager:
             player_board = (c_boards[0], c_boards[1]) if cur_player == 1 else (c_boards[1], c_boards[0])
             canonical_history, x_boards, y_boards = self.game.getCanonicalHistory(x_boards, y_boards,
                                                                                   canonical_board, player_board)"""
-
-            action = players[cur_player + 1](board, 1, True)
+            action = players[cur_player + 1](board)
 
             player_name = "B" if board.current_player == 1 else "W"
             action_history.append(f";{player_name}[{self.game.action_space_to_GTP(action)}]")
-            #print(action_history)
+            # print(action_history)
 
             board = self.game.getNextState(board, action)
-            #x_boards, y_boards = y_boards, x_boards
 
         return self.game.getGameEndedArena(board)
 
