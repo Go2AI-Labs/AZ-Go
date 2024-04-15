@@ -22,7 +22,7 @@ class Board:
         self.pieces = np.zeros((self.n, self.n))
 
         self.ko = None
-        self.komi = 6.5 if n <= 7 else 7.5
+        self.komi = 6.5 if n <= 7 else 7.5  # set to decimal to prevent ties
         self.handicaps = []
         self.history = []
         self.num_black_prisoners = 0
@@ -55,7 +55,7 @@ class Board:
         self.stone_ages = np.zeros((n, n), dtype=np.int_) - 1
 
         self.enforce_superko = False
-        #rng = np.random.RandomState(0)
+        # rng = np.random.RandomState(0)
         """self.hash_lookup = {
             WHITE: rng.randint(np.iinfo(np.uint64).max, size=(n, n), dtype='uint64'),
             BLACK: rng.randint(np.iinfo(np.uint64).max, size=(n, n), dtype='uint64')}
@@ -67,7 +67,7 @@ class Board:
         self.x_boards = [np.zeros((self.n, self.n)) for _ in range(8)]
         self.y_boards = [np.zeros((self.n, self.n)) for _ in range(8)]
         self.current_player = 1
-    
+
     def get_canonical_history(self):
         """
         Method to construct the game history from the perspective of the current player
@@ -78,9 +78,9 @@ class Board:
             - Two layers encoding the current player/opposing player (all 1s for black, all 0s for white) 
         """
         history = []
-        canonical_board = np.where(self.pieces != 0, self.pieces*self.current_player, 0)
-        #new_x = np.copy(canonical_board)
-        new_x = np.where(canonical_board == 1, 1, 0 )
+        canonical_board = np.where(self.pieces != 0, self.pieces * self.current_player, 0)
+        # new_x = np.copy(canonical_board)
+        new_x = np.where(canonical_board == 1, 1, 0)
         self.x_boards.append(new_x)
         new_y = np.where(canonical_board == -1, 1, 0)
         self.y_boards.append(new_y)
@@ -94,11 +94,11 @@ class Board:
             history.append(self.y_boards[i])
         history.append(self.make_sensibility_layer())
         if self.current_player == 1:
-            history.append(np.ones((self.n,self.n)))
-            history.append(np.zeros((self.n,self.n)))
+            history.append(np.ones((self.n, self.n)))
+            history.append(np.zeros((self.n, self.n)))
         else:
-            history.append(np.zeros((self.n,self.n)))
-            history.append(np.ones((self.n,self.n)))
+            history.append(np.zeros((self.n, self.n)))
+            history.append(np.ones((self.n, self.n)))
         return history
 
     def make_sensibility_layer(self):
@@ -115,19 +115,18 @@ class Board:
                 if not self.is_eye((i, j), self.current_player) and ((i, j) in legal_moves):
                     legal_and_not_eye[i, j] = 1
         return legal_and_not_eye
-    
+
     def getStringRepresentation(self):
-        #canonical_board = np.where(self.pieces != 0, self.pieces*self.current_player, 0)
-        #TODO: should we even have a canonical board??
+        # canonical_board = np.where(self.pieces != 0, self.pieces*self.current_player, 0)
+        # TODO: should we even have a canonical board??
         return np.array(self.pieces).tostring()
 
     def rotate_history(self, r, history):
         for i in range(len(history)):
-            history[i] = np.rot90(history[i], r%4)
+            history[i] = np.rot90(history[i], r % 4)
             if r >= 4:
                 history[i] = np.fliplr(history[i])
         return history
-
 
     # add [][] indexer syntax to the Board
     def __getitem__(self, index):
@@ -233,7 +232,7 @@ class Board:
         (x, y) = action
         self.current_hash = np.bitwise_xor(self.current_hash, self.hash_lookup[color][x][y])
     """
-    
+
     def _update_current_board(self, action, color):
         self.current_board = self.getStringRepresentation()
 
@@ -243,7 +242,7 @@ class Board:
         updating group sets and liberties along the way
         """
         for (x, y) in group:
-            #self._update_hash((x, y), self.pieces[x, y])
+            # self._update_hash((x, y), self.pieces[x, y])
             self._update_current_board((x, y), self.pieces[x, y])
             self.pieces[x, y] = EMPTY
         for (x, y) in group:
@@ -273,8 +272,8 @@ class Board:
         other.num_black_prisoners = self.num_black_prisoners
         other.num_white_prisoners = self.num_white_prisoners
         other.enforce_superko = self.enforce_superko
-        #other.current_hash = self.current_hash.copy()
-        #other.previous_hashes = self.previous_hashes.copy()
+        # other.current_hash = self.current_hash.copy()
+        # other.previous_hashes = self.previous_hashes.copy()
         other.previous_boards = self.previous_boards
         other.current_board = self.current_board
         other.x_boards = self.x_boards.copy()
@@ -337,7 +336,6 @@ class Board:
         if action not in self.handicaps and action not in player_history:
             return False
 
-
         state_copy = self.copy()
         state_copy.enforce_superko = False
         state_copy.execute_move(action, color)
@@ -347,7 +345,7 @@ class Board:
             return True
         else:
             return False"""
-        
+
         if state_copy.current_board in self.previous_boards:
             return True
         else:
@@ -579,7 +577,7 @@ class Board:
             if action is not PASS_MOVE:
                 (x, y) = action
                 self.pieces[x][y] = color
-                #self._update_hash(action, color)
+                # self._update_hash(action, color)
                 self._update_current_board(action, color)
                 self._update_neighbors(action, color)
                 self.stone_ages[x][y] = 0
@@ -616,7 +614,7 @@ class Board:
                     self.passes_white += 1
             self.history.append(action)
             # A new move has been played, so update variables to reflect the NEW current player
-            self.current_player = -1*self.current_player
+            self.current_player = -1 * self.current_player
             self.x_boards, self.y_boards = self.y_boards, self.x_boards
         else:
             raise IllegalMove(str(action) + ',' + str(color))
