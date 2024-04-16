@@ -8,6 +8,8 @@ from heatmap_generator import MapGenerator
 from definitions import CONFIG_PATH
 from utils.config_handler import ConfigHandler
 
+EPS = 1e-8
+
 class MCTS:
     """
     This class handles the MCTS tree.
@@ -221,14 +223,14 @@ class MCTS:
     def update_next_mcts_state(self):
         self.is_root = False 
 
-    def get_Q_vals(self, s):
+    def get_Q_vals(self, s, player):
         q_vals = []
         for a in range(self.game.getActionSize()):
-            if (s,a) in self.Qsa:
+            if (s,a) in self.Qsa and player in self.Qsa[(s,a)]:
                 try:
-                    q_vals.append(self.Qsa[(s,a)][-1])
+                    q_vals.append(self.Qsa[(s,a)][player][-1])
                 except:
-                    q_vals.append(self.Qsa[(s,a)])
+                    q_vals.append(self.Qsa[(s,a)][player])
             else:
                 q_vals.append(0.0)
         return q_vals

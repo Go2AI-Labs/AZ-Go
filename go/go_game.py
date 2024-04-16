@@ -7,9 +7,10 @@ from go.go_logic import Board
 
 
 class GoGame(Game):
-    def __init__(self, n):
+    def __init__(self, n, is_engine_game=False):
         super().__init__()
         self.n = n
+        self.is_engine_game = is_engine_game
 
     def getInitBoard(self):
         # return initial board (numpy board)
@@ -47,10 +48,9 @@ class GoGame(Game):
         #b = board.copy()
         legalMoves = board.get_legal_moves(board.current_player)
         valids[-1] = 1
-        """
-        if len(board.history) < 15 and is_self_play:
+
+        if self.is_engine_game and len(board.history) < 5:
             valids[-1] = 0
-        """
 
         if len(legalMoves) == 0:
             return np.array(valids)
@@ -235,8 +235,8 @@ class GoGame(Game):
                     score_black += 1
                 elif reach_mat[i][j][0] == 0 and reach_mat[i][j][1] == 1:
                     score_white += 1
-        score_white -= board.passes_white
-        score_black -= board.passes_black
+        """score_white -= board.passes_white
+        score_black -= board.passes_black"""
         return (score_black, score_white)
 
     def get_reachable(self, board, reach_mat):

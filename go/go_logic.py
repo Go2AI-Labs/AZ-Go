@@ -66,9 +66,20 @@ class Board:
 
         self.x_boards = [np.zeros((self.n, self.n)) for _ in range(8)]
         self.y_boards = [np.zeros((self.n, self.n)) for _ in range(8)]
+        self.canonical_history = []
+        # Initialize canonical history
+        for i in range(len(self.x_boards)): # X and Y boards
+            self.canonical_history.append(self.x_boards[i])
+            self.canonical_history.append(self.y_boards[i])
+        self.canonical_history.append(np.ones((self.n, self.n))) # Sensibility Layer
+        self.canonical_history.append(np.ones((self.n, self.n))) # Current Player
+        self.canonical_history.append(np.zeros((self.n, self.n))) # Opposing Player
         self.current_player = 1
 
     def get_canonical_history(self):
+        return self.canonical_history
+
+    #def get_canonical_history_with_update(self):
         """
         Method to construct the game history from the perspective of the current player
         Returns a 19xNxN matrix containing:
@@ -77,7 +88,7 @@ class Board:
             - The 'sensibility layer'
             - Two layers encoding the current player/opposing player (all 1s for black, all 0s for white) 
         """
-        history = []
+        """history = []
         canonical_board = np.where(self.pieces != 0, self.pieces * self.current_player, 0)
         # new_x = np.copy(canonical_board)
         new_x = np.where(canonical_board == 1, 1, 0)
@@ -99,7 +110,30 @@ class Board:
         else:
             history.append(np.zeros((self.n, self.n)))
             history.append(np.ones((self.n, self.n)))
-        return history
+        return history"""
+    
+    #def get_canonical_history_no_update(self):
+        """
+        Method to construct the game history from the perspective of the current player
+        Returns a 19xNxN matrix containing:
+            - The current/opposing player's stones for the last 8 timesteps
+            ----> 16 layers total -- 8 for each player
+            - The 'sensibility layer'
+            - Two layers encoding the current player/opposing player (all 1s for black, all 0s for white) 
+        """
+        """history = []
+
+        for i in range(len(self.x_boards) - 1, -1, -1):
+            history.append(self.x_boards[i])
+            history.append(self.y_boards[i])
+        history.append(self.make_sensibility_layer())
+        if self.current_player == 1:
+            history.append(np.ones((self.n, self.n)))
+            history.append(np.zeros((self.n, self.n)))
+        else:
+            history.append(np.zeros((self.n, self.n)))
+            history.append(np.ones((self.n, self.n)))
+        return history"""
 
     def make_sensibility_layer(self):
         """
@@ -279,6 +313,7 @@ class Board:
         other.x_boards = self.x_boards.copy()
         other.y_boards = self.y_boards.copy()
         other.current_player = self.current_player
+        other.canonical_history = self.canonical_history
 
         # update liberty and group sets.
         #
@@ -564,6 +599,32 @@ class Board:
                 if self.is_legal((x, y), color):
                     return True;
         return False
+    
+    def _update_canonical_history(self):
+        history_temp = []
+        canonical_board = np.where(self.pieces != 0, self.pieces * self.current_player, 0)
+        # new_x = np.copy(canonical_board)
+        new_x = np.where(canonical_board == 1, 1, 0)
+        self.x_boards.append(new_x)
+        new_y = np.where(canonical_board == -1, 1, 0)
+        self.y_boards.append(new_y)
+
+        # Remove the oldest board state from history
+        self.x_boards = self.x_boards[1:]
+        self.y_boards = self.y_boards[1:]
+
+        for i in range(len(self.x_boards) - 1, -1, -1):
+            history_temp.append(self.x_boards[i])
+            history_temp.append(self.y_boards[i])
+        history_temp.append(self.make_sensibility_layer())
+        if self.current_player == 1:
+            history_temp.append(np.ones((self.n, self.n)))
+            history_temp.append(np.zeros((self.n, self.n)))
+        else:
+            history_temp.append(np.zeros((self.n, self.n)))
+            history_temp.append(np.ones((self.n, self.n)))
+        self.canonical_history = history_temp
+
 
     def execute_move(self, action, color):
         """Perform the given move on the board; flips pieces as necessary.
@@ -616,6 +677,7 @@ class Board:
             # A new move has been played, so update variables to reflect the NEW current player
             self.current_player = -1 * self.current_player
             self.x_boards, self.y_boards = self.y_boards, self.x_boards
+            self._update_canonical_history()
         else:
             raise IllegalMove(str(action) + ',' + str(color))
 

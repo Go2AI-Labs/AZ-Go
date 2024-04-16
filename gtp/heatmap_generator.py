@@ -33,18 +33,24 @@ class MapGenerator:
         
         return(new_map)
     
-    def generate_game_board(self, canonicalBoard, curPlayer, action):
+    def generate_game_board(self, board, action):
         board_arr = self.init_new_map(grid_color=64)
         for i in range(7):
             for j in range(7):
-                pos = canonicalBoard[i][j]
+                pos = board.pieces[i][j]
                 row_start = (i * self.SQUARE_SIZE) + (self.LINE_WIDTH * (i+1))
                 col_start = (j * self.SQUARE_SIZE) + (self.LINE_WIDTH * (j+1))
                 row_end = row_start+self.SQUARE_SIZE
                 col_end = col_start+self.SQUARE_SIZE
-                if action == ((i*7) + j):
+                if action == ((i*7) + j): # Move just made
                     move_red, move_green, move_blue = 0, 175, 255
-                elif curPlayer == 1:
+                elif pos == 1: # Black Piece
+                    move_red, move_green, move_blue = 5, 5, 5
+                elif pos == -1: # White Piece
+                    move_red, move_green, move_blue = 250, 250, 250
+                else: # Empty
+                    move_red, move_green, move_blue = 122, 82, 49
+                """elif curPlayer == 1:
                     if pos == 1:
                         move_red, move_green, move_blue = 5, 5, 5
                     elif pos == -1:
@@ -57,7 +63,7 @@ class MapGenerator:
                     elif pos == -1:
                         move_red, move_green, move_blue = 5, 5, 5
                     else:
-                        move_red, move_green, move_blue = 122, 82, 49
+                        move_red, move_green, move_blue = 122, 82, 49"""
                 board_arr[row_start:row_end, col_start:col_end] = [move_red, move_green, move_blue]
         board_image = Image.fromarray(board_arr)
         return board_image
