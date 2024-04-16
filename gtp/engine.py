@@ -251,10 +251,10 @@ def generate_move(color):
     else:
         curPlayer = -1
 
-    canonicalBoard = game.getCanonicalForm(board, curPlayer)
+    #canonicalBoard = game.getCanonicalForm(board, curPlayer)
 
     # make move on board
-    player_board = (c_boards[0], c_boards[1]) if curPlayer == 1 else (c_boards[1], c_boards[0])
+    #player_board = (c_boards[0], c_boards[1]) if curPlayer == 1 else (c_boards[1], c_boards[0])
 
     num_sims = config["num_full_search_sims"]
 
