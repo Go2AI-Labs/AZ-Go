@@ -6,6 +6,7 @@ from definitions import CONFIG_PATH
 from go.go_game import GoGame
 from utils.config_handler import ConfigHandler
 from utils.print_debug import print_debug
+from go.go_game import display
 
 
 class SelfPlayManager:
@@ -53,7 +54,7 @@ class SelfPlayManager:
             """pi = self.mcts.getActionProb(canonical_board, canonicalHistory, x_boards, y_boards, player_board, use_noise,
                                          num_sims, temp=temp)"""
         
-            pi = self.mcts.getActionProbability(board, temp=temp, is_full_search=is_full_search)
+            pi = self.mcts.getActionProb(board, temp=temp, is_full_search=is_full_search)
 
             # choose a move
             if temp == 1:
@@ -76,6 +77,11 @@ class SelfPlayManager:
                                                          enable_resignation_threshold=True)
 
             print_debug(f"Score: {score}, R: {r}")
+            #print(f"Given pi = {pi}\nChose action = {action}")
+            print(display(board))
+            bscore, wscore = self.go_game.getScore(board)
+            print(f"Score -- B: {bscore}   W: {wscore}")
+            print("\n")
 
         # return game result
         return [(x[0], x[2], r * ((-1) ** (x[1] != board.current_player))) for x in game_train_examples]

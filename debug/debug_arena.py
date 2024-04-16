@@ -22,17 +22,15 @@ if __name__ == "__main__":
     # define players
     neural_network_one = NNetWrapper(game, config)
     neural_network_one.load_checkpoint(CHECKPOINT_PATH, 'best.pth.tar')
-    # mcts_one = MCTS(game, neural_network_one)
-    mcts_one = MCTSDis(game, neural_network_one)
+    mcts_one = MCTSDis(game, neural_network_one, False)
 
     neural_network_two = NNetWrapper(game, config)
     neural_network_two.load_checkpoint(CHECKPOINT_PATH, 'best.pth.tar')
-    # mcts_one = MCTS(game, neural_network_one)
-    mcts_two = MCTSDis(game, neural_network_two)
+    mcts_two = MCTSDis(game, neural_network_two, False)
 
     player1 = lambda x: np.argmax(mcts_one.getActionProb(x, temp=0))
     player2 = lambda x: np.argmax(mcts_two.getActionProb(x, temp=0))
 
     arena = ArenaManager(player1, player1, mcts_one, mcts_two)
 
-    arena.play_games(2)
+    arena.play_games(50)

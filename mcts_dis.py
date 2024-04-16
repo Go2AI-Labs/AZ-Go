@@ -17,7 +17,7 @@ class MCTSDis:
         self.game = game
         self.nnet = nnet
         self.config = ConfigHandler(CONFIG_PATH)
-        c_puct = self.config["c_puct"]
+        self.cpuct = self.config["c_puct"]
 
         self.Qsa = {}  # stores Q values for s,a (as defined in the paper)
         self.Nsa = {}  # stores #times edge s,a was visited
@@ -52,7 +52,8 @@ class MCTSDis:
 
         #s = self.game.stringRepresentation(canonical_board)
         s = board.getStringRepresentation()
-        counts = np.array([self.Nsa[(s, a)] if (s, a) in self.Nsa else 0 for a in range(self.game.getActionSize())])
+        player = board.current_player
+        counts = np.array([self.Nsa[(s, a)][player] if (s, a) in self.Nsa and player in self.Nsa[(s, a)] else 0 for a in range(self.game.getActionSize())])
         # Temp == 0 --> Return the action with the highest visit count
         if temp == 0:
             bestAs = np.array(np.argwhere(counts == np.max(counts))).flatten()
@@ -85,27 +86,33 @@ class MCTSDis:
         Returns:
             v: the negative of the value of the current canonicalBoard
         """
-
-        s = board.stringRepresentation()
+        player = board.current_player
+        s = board.getStringRepresentation()
 
         # Check if simulation has reached a terminal state
-        if s not in self.Es:
-            self.Es[s] = self.game.getGameEndedSelfPlay(board)
-        if self.Es[s] != 0 and self.Es[s] is not None:
+        if s not in self.Es or (s in self.Es and player not in self.Es[s]):
+            if s not in self.Es:
+                self.Es[s] = {}
+            self.Es[s][player] = self.game.getGameEndedSelfPlay(board)
+        elif s in self.Es and (len(board.history) > 1 and (board.history[-1] is None and board.history[-2] is None)):
+            self.Es[s][player] = self.game.getGameEndedSelfPlay(board)
+        if self.Es[s][player] != 0 and self.Es[s][player] is not None:
             # terminal node
-            return -self.Es[s]
+            return -self.Es[s][player]
         
-        #TODO: Check if recursive base case is really needed??
-
         # If the current node is a leaf node (and not a terminal state)
-        if s not in self.Ps:
+        if s not in self.Ps or (s in self.Ps and player not in self.Ps[s]):
             p, v = self.predict(board)
-            self.Ps[s] = p
+            if s not in self.Ps:
+                self.Ps[s] = {}
+                self.Vs[s] = {}
+                self.Ns[s] = {}
+            self.Ps[s][player] = p
             valids = self.game.getValidMoves(board)
-            self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
-            sum_Ps_s = np.sum(self.Ps[s])
+            self.Ps[s][player] = self.Ps[s][player] * valids  # masking invalid moves
+            sum_Ps_s = np.sum(self.Ps[s][player])
             if sum_Ps_s > 0:
-                self.Ps[s] /= sum_Ps_s  # renormalize
+                self.Ps[s][player] /= sum_Ps_s  # renormalize
             else:
                 # if all valid moves were masked make all valid moves equally probable
 
@@ -113,14 +120,19 @@ class MCTSDis:
                 # If you have got dozens or hundreds of these messages you should pay attention to your NNet and/or training process.
                 # log.error("All valid moves were masked, doing a workaround.")
                 print("All valid moves were masked, doing a workaround...")
-                self.Ps[s] = self.Ps[s] + valids
-                self.Ps[s] /= np.sum(self.Ps[s])
+                self.Ps[s][player] = self.Ps[s][player] + valids
+                self.Ps[s][player] /= np.sum(self.Ps[s][player])
 
-            self.Vs[s] = valids
-            self.Ns[s] = 0
+            self.Vs[s][player] = valids
+            self.Ns[s][player] = 0
             return -v
 
-        valids = self.Vs[s]
+        valids = self.Vs[s][player]
+        # Check if ko changed between first time board state 's' is encountered
+        # and subsequent encounters throughout MCTS
+        if board.ko is not None:
+            invalid = board.ko[0]*7 + board.ko[1]
+            valids[invalid] = 0
         cur_best = -float('inf')
         best_act = -1
 
@@ -133,20 +145,20 @@ class MCTSDis:
         # pick the action with the highest upper confidence bound
         for a in range(self.game.getActionSize()):
             if valids[a]:
-                noise_idx += 1
-                if (s, a) in self.Qsa and self.Qsa[(s, a)] != None:
-                    q = self.Qsa[(s, a)]
-                    n_sa = self.Nsa[(s, a)]
-                    ns = self.Ns[s]
+                if (s, a) in self.Qsa and player in self.Qsa[(s, a)] and self.Qsa[(s, a)][player] != None:
+                    q = self.Qsa[(s, a)][player]
+                    n_sa = self.Nsa[(s, a)][player]
+                    ns = self.Ns[s][player]
                     """u = self.Qsa[(s, a)] + self.c_puct * self.Ps[s][a] * math.sqrt(self.Ns[s]) / (
                             1 + self.Nsa[(s, a)])"""
                 else:
                     q = 0
                     n_sa = 0
-                    ns = self.Ns[s] + EPS
+                    ns = self.Ns[s][player] + EPS
                     """u = self.c_puct * self.Ps[s][a] * math.sqrt(self.Ns[s] + EPS)  # Q = 0 ?"""
-                p = self.Ps[s][a]
+                p = self.Ps[s][player][a]
                 if self.is_root and self.is_self_play:
+                    noise_idx += 1
                     p = (1 - 0.25) * p + 0.25 * noise[noise_idx]
                 u = q + self.cpuct * p * math.sqrt(ns) / (1 + n_sa)
 
@@ -154,21 +166,24 @@ class MCTSDis:
                     cur_best = u
                     best_act = a
         a = best_act
+        
         # Returns a copy of the board state and the next player to play
         next_s = self.game.getNextState(board, a)
-        #next_s = self.game.getCanonicalForm(next_s, next_player)
         self.is_root = False
         v = self.search(next_s)
 
-        if (s, a) in self.Qsa:
-            self.Qsa[(s, a)] = (self.Nsa[(s, a)] * self.Qsa[(s, a)] + v) / (self.Nsa[(s, a)] + 1)
-            self.Nsa[(s, a)] += 1
+        if (s, a) in self.Qsa and player in self.Qsa[(s, a)]:
+            self.Qsa[(s, a)][player] = (self.Nsa[(s, a)][player] * self.Qsa[(s, a)][player] + v) / (self.Nsa[(s, a)][player] + 1)
+            self.Nsa[(s, a)][player] += 1
 
         else:
-            self.Qsa[(s, a)] = v
-            self.Nsa[(s, a)] = 1
+            if (s, a) not in self.Qsa:
+                self.Qsa[(s, a)] = {}
+                self.Nsa[(s, a)] = {}
+            self.Qsa[(s, a)][player] = v
+            self.Nsa[(s, a)][player] = 1
 
-        self.Ns[s] += 1
+        self.Ns[s][player] += 1
         return -v
 
     def predict(self, board):
@@ -176,10 +191,6 @@ class MCTSDis:
         r = np.random.randint(8)
         nnet_input = board.get_canonical_history()
         nnet_input = board.rotate_history(r, nnet_input)
-        """b = np.copy(board)
-        b = np.rot90(b, r % 4)
-        if r >= 4:
-            b = np.fliplr(b)"""
         pi, v = self.nnet.predict(nnet_input)
 
         # policy need to rotate and flip back

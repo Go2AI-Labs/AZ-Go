@@ -30,9 +30,6 @@ class GoGame(Game):
         # print("getting next state from perspect of player {} with action {}".format(player,action))
 
         b = board.copy()
-        """if action == self.n * self.n:
-            b.history.append(None)
-            return (b, -player)"""
         if action == (self.n * self.n):
             move = None
         else:
@@ -114,8 +111,9 @@ class GoGame(Game):
 
         # End game "normally"
         #if enable_resignation_threshold and len(board.history) > 1:
-        if len(board.history) > 1:
+        if len(board.history) > 3:
             # Check if both players passed in succession
+            #print(f"History Length > 1 -- [-1] = {board.history[-1]} -- [-2] = {board.history[-2]}")
             if board.history[-1] is None and board.history[-2] is None:
                 if score_black > score_white:
                     if board.current_player == 1:
@@ -160,24 +158,7 @@ class GoGame(Game):
                 else:
                     # Tie
                     winner = 1e-4
-        """
-        # Check if both players have passed in succession
-        elif len(board.history) >= 2:
-            if board.history[-1] is None and board.history[-2] is None:
-                if score_black > score_white:
-                    if board.current_player == 1:
-                        winner = 1
-                    else:
-                        winner = -1
-                elif score_white > score_black:
-                    if board.current_player == -1:
-                        winner = 1
-                    else:
-                        winner = -1
-                else:
-                    # Tie
-                    winner = 1e-4
-        """
+
         if return_score:
             return winner, (score_black, score_white)
         return winner
@@ -186,22 +167,22 @@ class GoGame(Game):
     #   - A move threshold (7 x 7 x 2 = 98)
     #   - Both players passing
     # Arena uses the Chinese ruleset (todo)
-    def getGameEndedArena(self, board, player, returnScore=False):
+    def getGameEndedArena(self, board, returnScore=False):
         winner = 0
         (score_black, score_white) = self.getScore(board)
 
         # limit games to 98 moves, determine winner based on score of current board
         if len(board.history) >= 98:
             if score_black > score_white:
-                if player == 1:
-                    winner = 1
-                else:
-                    winner = -1
+                #if board.current_player == 1:
+                winner = 1
+                """else:
+                    winner = -1"""
             elif score_white > score_black:
-                if player == -1:
-                    winner = 1
-                else:
-                    winner = -1
+                #if board.current_player == -1:
+                winner = -1
+                """else:
+                    winner = -1"""
             else:
                 # Tie
                 winner = 1e-4
@@ -210,15 +191,15 @@ class GoGame(Game):
             # score threshold (by_score) is disabled, both players must pass to end game (or until 98 moves reached)
             if board.history[-1] is None and board.history[-2] is None:
                 if score_black > score_white:
-                    if player == 1:
-                        winner = 1
-                    else:
-                        winner = -1
+                    #if board.current_player == 1:
+                    winner = 1
+                    """else:
+                        winner = -1"""
                 elif score_white > score_black:
-                    if player == -1:
-                        winner = 1
-                    else:
-                        winner = -1
+                    #if board.current_player == -1:
+                    winner = -1
+                    """else:
+                        winner = -1"""
                 else:
                     # Tie
                     winner = 1e-4
@@ -231,6 +212,9 @@ class GoGame(Game):
         score_white = np.sum(board.pieces == -1)
         score_black = np.sum(board.pieces == 1)
         empties = zip(*np.where(board.pieces == 0))
+        #print(f"\nCalled get score -- len = {len(board.history)}")
+        """if len(board.history) > 1:
+            print(f"History > 1 -- [-1] = {board.history[-1]} -- [-2] = {board.history[-2]}")"""
         """print(f"Empties: {empties}")
         print(f"Score black before eye: {score_black}")
         print(f"Score white before eye: {score_white}")"""
@@ -471,7 +455,7 @@ def display(board):
     state = ""
     b_pieces = np.array(board.pieces)
 
-    n = b_pieces.shape[0]
+    n = 7
 
     for y in range(n):
         state = state + str(y) + " |"

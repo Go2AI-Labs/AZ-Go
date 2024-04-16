@@ -10,7 +10,8 @@ from definitions import CONFIG_PATH, CHECKPOINT_PATH, SENS_CONFIG_PATH, DIS_SELF
 from distributed.ssh_connector import SSHConnector
 from distributed.status_manager import StatusManager, Status
 from go.go_game import GoGame
-from mcts import MCTS
+#from mcts import MCTS
+from mcts_dis import MCTSDis as MCTS
 from neural_network.neural_net_wrapper import NNetWrapper
 from training.arena import Arena
 from training.self_play_manager import SelfPlayManager
@@ -76,7 +77,7 @@ class Worker:
         go_game = GoGame(self.config['board_size'])
         neural_net = NNetWrapper(go_game, self.config)
         neural_net.load_checkpoint(CHECKPOINT_PATH, 'best.pth.tar')
-        mcts = MCTS(game=go_game, nnet=neural_net)
+        mcts = MCTS(game=go_game, nnet=neural_net, is_self_play=True)
         local_path, file_name = self.execute_self_play(go_game=go_game, neural_net=neural_net, mcts=mcts)
         self.connector.upload_self_play_examples(local_path, file_name)
         os.remove(local_path)
@@ -131,11 +132,11 @@ class Worker:
         previous_net.load_checkpoint(CHECKPOINT_PATH, 'previous_net.pth.tar')
         current_net = NNetWrapper(game=go_game, config=self.config)
         current_net.load_checkpoint(CHECKPOINT_PATH, 'current_net.pth.tar')
-        previous_mcts = MCTS(game=go_game, nnet=previous_net)
-        current_mcts = MCTS(game=go_game, nnet=current_net)
+        previous_mcts = MCTS(game=go_game, nnet=previous_net, is_self_play=False)
+        current_mcts = MCTS(game=go_game, nnet=current_net, is_self_play=False)
 
-        arena = Arena(lambda x, y, z, a, b, c, d: np.argmax(previous_mcts.getActionProb(x, y, z, a, b, c, d, temp=0)),
-                      lambda x, y, z, a, b, c, d: np.argmax(current_mcts.getActionProb(x, y, z, a, b, c, d, temp=0)),
+        arena = Arena(lambda x, y, z: np.argmax(previous_mcts.getActionProb(x, y, z)),
+                      lambda x, y, z: np.argmax(current_mcts.getActionProb(x, y, z)),
                       go_game, self.config)
 
         prev_wins, current_wins, draws, outcomes, total_played = arena.playGames(2)

@@ -22,7 +22,7 @@ class Board:
         self.pieces = np.zeros((self.n, self.n))
 
         self.ko = None
-        self.komi = 1 if n <= 7 else 7.5
+        self.komi = 6.5 if n <= 7 else 7.5
         self.handicaps = []
         self.history = []
         self.num_black_prisoners = 0
@@ -55,12 +55,14 @@ class Board:
         self.stone_ages = np.zeros((n, n), dtype=np.int_) - 1
 
         self.enforce_superko = False
-        rng = np.random.RandomState(0)
-        self.hash_lookup = {
+        #rng = np.random.RandomState(0)
+        """self.hash_lookup = {
             WHITE: rng.randint(np.iinfo(np.uint64).max, size=(n, n), dtype='uint64'),
             BLACK: rng.randint(np.iinfo(np.uint64).max, size=(n, n), dtype='uint64')}
         self.current_hash = np.uint64(0)
-        self.previous_hashes = set()
+        self.previous_hashes = set()"""
+        self.previous_boards = []
+        self.current_board = np.array(self.pieces).tostring()
 
         self.x_boards = [np.zeros((self.n, self.n)) for _ in range(8)]
         self.y_boards = [np.zeros((self.n, self.n)) for _ in range(8)]
@@ -114,9 +116,10 @@ class Board:
                     legal_and_not_eye[i, j] = 1
         return legal_and_not_eye
     
-    def stringRepresentation(self):
-        canonical_board = np.where(self.pieces != 0, self.pieces*self.current_player, 0)
-        return np.array(canonical_board).tostring()
+    def getStringRepresentation(self):
+        #canonical_board = np.where(self.pieces != 0, self.pieces*self.current_player, 0)
+        #TODO: should we even have a canonical board??
+        return np.array(self.pieces).tostring()
 
     def rotate_history(self, r, history):
         for i in range(len(history)):
@@ -225,9 +228,14 @@ class Board:
             self.liberty_sets[gx][gy] = merged_libs
             self.liberty_counts[gx][gy] = count_merged_libs
 
+    """
     def _update_hash(self, action, color):
         (x, y) = action
         self.current_hash = np.bitwise_xor(self.current_hash, self.hash_lookup[color][x][y])
+    """
+    
+    def _update_current_board(self, action, color):
+        self.current_board = self.getStringRepresentation()
 
     def _remove_group(self, group):
 
@@ -235,7 +243,8 @@ class Board:
         updating group sets and liberties along the way
         """
         for (x, y) in group:
-            self._update_hash((x, y), self.pieces[x, y])
+            #self._update_hash((x, y), self.pieces[x, y])
+            self._update_current_board((x, y), self.pieces[x, y])
             self.pieces[x, y] = EMPTY
         for (x, y) in group:
             # clear group_sets for all positions in 'group'
@@ -264,8 +273,10 @@ class Board:
         other.num_black_prisoners = self.num_black_prisoners
         other.num_white_prisoners = self.num_white_prisoners
         other.enforce_superko = self.enforce_superko
-        other.current_hash = self.current_hash.copy()
-        other.previous_hashes = self.previous_hashes.copy()
+        #other.current_hash = self.current_hash.copy()
+        #other.previous_hashes = self.previous_hashes.copy()
+        other.previous_boards = self.previous_boards
+        other.current_board = self.current_board
         other.x_boards = self.x_boards.copy()
         other.y_boards = self.y_boards.copy()
         other.current_player = self.current_player
@@ -326,11 +337,18 @@ class Board:
         if action not in self.handicaps and action not in player_history:
             return False
 
+
         state_copy = self.copy()
         state_copy.enforce_superko = False
         state_copy.execute_move(action, color)
 
+        """
         if state_copy.current_hash in self.previous_hashes:
+            return True
+        else:
+            return False"""
+        
+        if state_copy.current_board in self.previous_boards:
             return True
         else:
             return False
@@ -561,7 +579,8 @@ class Board:
             if action is not PASS_MOVE:
                 (x, y) = action
                 self.pieces[x][y] = color
-                self._update_hash(action, color)
+                #self._update_hash(action, color)
+                self._update_current_board(action, color)
                 self._update_neighbors(action, color)
                 self.stone_ages[x][y] = 0
                 # print("player {} act {} --:".format(color,action))
@@ -588,7 +607,8 @@ class Board:
                                 # note: (nx,ny) is the stone that was captured
                                 self.ko = (nx, ny)
                 # _remove_group has finished updating the hash
-                self.previous_hashes.add(self.current_hash)
+                # self.previous_hashes.add(self.current_hash)
+                self.previous_boards.append(self.current_board)
             else:
                 if color == BLACK:
                     self.passes_black += 1

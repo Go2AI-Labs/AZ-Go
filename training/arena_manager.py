@@ -59,29 +59,27 @@ class ArenaManager:
         players = [self.player2, None, self.player1]
         cur_player = 1
         board = self.game.getInitBoard()
-        x_boards, y_boards, c_boards = [], [], [np.ones((7, 7)), np.zeros((7, 7))]
+        """x_boards, y_boards, c_boards = [], [], [np.ones((7, 7)), np.zeros((7, 7))]"""
         action_history = []
 
-        for i in range(8):
+        """ for i in range(8):
             x_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
-            y_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
+            y_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))"""
 
-        while self.game.getGameEndedArena(board, cur_player) == 0:
-            canonical_board = self.game.getCanonicalForm(board, cur_player)
+        while self.game.getGameEndedArena(board) == 0:
+            """canonical_board = self.game.getCanonicalForm(board, cur_player)
             player_board = (c_boards[0], c_boards[1]) if cur_player == 1 else (c_boards[1], c_boards[0])
             canonical_history, x_boards, y_boards = self.game.getCanonicalHistory(x_boards, y_boards,
-                                                                                  canonical_board, player_board)
+                                                                                  canonical_board, player_board)"""
+            action = players[cur_player + 1](board)
 
-            action = players[cur_player + 1](self.game.getCanonicalForm(board, cur_player))
-
-            player_name = "B" if cur_player == 1 else "W"
+            player_name = "B" if board.current_player == 1 else "W"
             action_history.append(f";{player_name}[{self.game.action_space_to_GTP(action)}]")
-            print(action_history)
+            # print(action_history)
 
-            board, cur_player = self.game.getNextState(board, cur_player, action)
-            x_boards, y_boards = y_boards, x_boards
+            board = self.game.getNextState(board, action)
 
-        return self.game.getGameEndedArena(board, 1)
+        return self.game.getGameEndedArena(board)
 
     def clear_MCTS(self):
         if self.mcts1:
