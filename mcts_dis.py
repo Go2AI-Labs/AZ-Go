@@ -1,7 +1,5 @@
 import math
-
 import numpy as np
-
 from definitions import CONFIG_PATH
 from utils.config_handler import ConfigHandler
 
