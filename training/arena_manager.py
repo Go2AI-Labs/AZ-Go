@@ -48,8 +48,7 @@ class ArenaManager:
         return one_wins, two_wins, draws
 
     def play_game(self):
-        print("Arena Game Started")
-
+        # print("Arena Game Started")
         self.game = GoGame(self.config["board_size"])
         board = self.game.getInitBoard()
         players = [self.player2, None, self.player1]

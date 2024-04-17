@@ -94,7 +94,7 @@ class Worker:
         manager = SelfPlayManager(neural_net, mcts)
         for eps in range(self.config["num_games_per_distributed_batch"]):
             iteration_train_examples += manager.execute_game()
-            print("Game completed.")
+            print("Self play game completed.")
 
         # save the generated train examples in their own file
         train_examples_history.append(iteration_train_examples)
@@ -141,6 +141,7 @@ class Worker:
         arena = ArenaManager(prev_player, curr_player, previous_mcts, current_mcts)
 
         prev_wins, current_wins, draws = arena.play_games(2)
+        print("Arena two game batch completed.")
 
         outcomes = {"current_wins": current_wins, "previous_wins": prev_wins, "ties": draws,
                     "games_played": prev_wins + current_wins + draws}

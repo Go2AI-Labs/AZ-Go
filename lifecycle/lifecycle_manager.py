@@ -83,7 +83,7 @@ class LifecycleManager:
         """
         files = glob.glob(DIS_ARENA_PATH + "*")
         for file in files:
-            print(file)
+            # print(file)
             if self.completed_games_arena >= self.config["num_arena_episodes"]:
                 self.is_complete_arena = True
                 break

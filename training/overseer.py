@@ -86,7 +86,7 @@ class Overseer:
             print_debug(f"Arena reported CURRENT WINS:{self.lifecycle_manager.current_model_wins}")
             print_debug(f"Arena reported PREV WINS:{self.lifecycle_manager.previous_model_wins}")
             print(f"Arena winrate CURRENT/TOTAL: "
-                  f"{win_rate}")
+                  f"{win_rate * 100}%")
             print_debug(f"Should accept current model: {should_accept_current_model}")
             self.neural_net_manager.update_best_model_if_needed(should_accept_current_model=should_accept_current_model,
                                                                 lifecycle_metadata=self.lifecycle_metadata)
