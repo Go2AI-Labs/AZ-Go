@@ -22,7 +22,7 @@ class ArenaManager:
 
         for i in range(num_games):
             game_result = self.play_game()
-            print(game_result)
+            # print(game_result)
 
             if (i % 2) == 0:
                 if game_result == 1:
@@ -59,18 +59,9 @@ class ArenaManager:
         players = [self.player2, None, self.player1]
         cur_player = 1
         board = self.game.getInitBoard()
-        """x_boards, y_boards, c_boards = [], [], [np.ones((7, 7)), np.zeros((7, 7))]"""
         action_history = []
 
-        """ for i in range(8):
-            x_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))
-            y_boards.append(np.zeros((self.config["board_size"], self.config["board_size"])))"""
-
         while self.game.getGameEndedArena(board) == 0:
-            """canonical_board = self.game.getCanonicalForm(board, cur_player)
-            player_board = (c_boards[0], c_boards[1]) if cur_player == 1 else (c_boards[1], c_boards[0])
-            canonical_history, x_boards, y_boards = self.game.getCanonicalHistory(x_boards, y_boards,
-                                                                                  canonical_board, player_board)"""
             action = players[cur_player + 1](board)
 
             player_name = "B" if board.current_player == 1 else "W"

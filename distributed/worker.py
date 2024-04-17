@@ -144,7 +144,7 @@ class Worker:
 
         prev_wins, current_wins, draws = arena.play_games(2)
 
-        outcomes = {"current_wins": prev_wins, "previous_wins": current_wins, "ties": draws,
+        outcomes = {"current_wins": current_wins, "previous_wins": prev_wins, "ties": draws,
                     "games_played": prev_wins + current_wins + draws}
         file_name = (f'{self.sensitive_config["worker_machine_tag"]}_{randint(1, 1000)}' + '.json')
         local_path = os.path.join(DIS_ARENA_PATH, file_name)

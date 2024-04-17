@@ -7,6 +7,9 @@ from go.go_logic import Board
 
 
 class GoGame(Game):
+
+    # TODO: should is_engine_game be a part of config.yaml instead?
+    # I don't think we want to couple engine code and the GoGame class - HL
     def __init__(self, n, is_engine_game=False):
         super().__init__()
         self.n = n
