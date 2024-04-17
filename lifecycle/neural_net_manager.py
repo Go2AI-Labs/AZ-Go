@@ -1,4 +1,4 @@
-from definitions import CONFIG_PATH, CHECKPOINT_PATH, DIS_SELF_PLAY_PATH
+from definitions import CONFIG_PATH, CHECKPOINT_PATH
 from go.go_game import GoGame
 from neural_network.neural_net_wrapper import NNetWrapper as NNetWrapper
 from utils.config_handler import ConfigHandler
@@ -62,12 +62,10 @@ class NeuralNetManager:
 
     def train_current_model(self, train_examples):
         """
-        Trains current model with provided train examples
+        Trains current model with provided train examples and returns loss values generated during training
         """
         # TODO save_checkpoint from NNetWrapper will create logs directory in the wrong spot when called here
-        train_log = self.current_net.train(train_examples)
-        # TODO use train log for v and p loss logging in Numpy
-        # print(train_log)
+        return self.current_net.train(train_examples)
 
     def update_best_model_if_needed(self, should_accept_current_model, lifecycle_metadata):
         if should_accept_current_model:

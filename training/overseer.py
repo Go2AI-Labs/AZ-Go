@@ -5,6 +5,7 @@ from lifecycle.lifecycle_manager import LifecycleManager
 from lifecycle.lifecycle_metadata import LifecycleMetadata
 from lifecycle.neural_net_manager import NeuralNetManager
 from lifecycle.train_example_manager import TrainExampleManager
+from logger.graph_logger import GraphLogger
 from utils.config_handler import ConfigHandler
 from utils.data_serializer import delete_directory_contents
 from utils.print_debug import print_debug
@@ -19,10 +20,11 @@ class Overseer:
         self.lifecycle_metadata = LifecycleMetadata()
         self.status_manager = StatusManager()
         self.neural_net_manager = NeuralNetManager()
+        self.graph_logger = GraphLogger()
 
     def start(self):
         for i in range(1, self.config["num_iterations"]):
-            print_debug(f"Started iteration {self.lifecycle_metadata.iteration_num}")
+            print(f"Started iteration {self.lifecycle_metadata.iteration_num}")
 
             if self.lifecycle_metadata.is_first_iteration:
                 # need to save the current model
@@ -55,7 +57,8 @@ class Overseer:
             # train new network
             self.neural_net_manager.prepare_neural_net_for_training()
             print_debug("Saved previous net and loaded previous net")
-            self.neural_net_manager.train_current_model(self.train_example_manager.shuffled_train_examples)
+            train_log = self.neural_net_manager.train_current_model(self.train_example_manager.shuffled_train_examples)
+            self.graph_logger.add_train_log(train_log)
             print_debug("Trained current neural network")
             self.neural_net_manager.save_current_network_to_disk()
             print_debug("Saved current neural network")
@@ -77,16 +80,19 @@ class Overseer:
             print_debug(f"Completed arena with {self.lifecycle_manager.completed_games_arena} games")
 
             should_accept_current_model = self.lifecycle_manager.handle_arena_outcome()
+            win_rate = self.lifecycle_manager.current_model_wins / self.lifecycle_manager.completed_games_arena
+            self.graph_logger.add_win_rate(win_rate)
+
             print_debug(f"Arena reported CURRENT WINS:{self.lifecycle_manager.current_model_wins}")
             print_debug(f"Arena reported PREV WINS:{self.lifecycle_manager.previous_model_wins}")
-            print_debug(f"Arena winrate CURRENT/TOTAL: "
-                        f"{self.lifecycle_manager.current_model_wins / self.lifecycle_manager.completed_games_arena}")
+            print(f"Arena winrate CURRENT/TOTAL: "
+                  f"{win_rate}")
             print_debug(f"Should accept current model: {should_accept_current_model}")
             self.neural_net_manager.update_best_model_if_needed(should_accept_current_model=should_accept_current_model,
                                                                 lifecycle_metadata=self.lifecycle_metadata)
 
             # record results to graphs
-            # assign best.pth.tar as need
+            self.graph_logger.update_plots()
 
             # prepare for next iteration
             self.lifecycle_manager.reset_self_play()

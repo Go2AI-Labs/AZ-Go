@@ -90,8 +90,8 @@ class LifecycleManager:
 
             # do something with files
             outcomes = load_json_from_disk(file)
-            print(f"outcomes: {outcomes}")
-            print(f"current_wins: {outcomes['current_wins']}")
+            # print(f"outcomes: {outcomes}")
+            # print(f"current_wins: {outcomes['current_wins']}")
             self.current_model_wins += outcomes["current_wins"]
             self.previous_model_wins += outcomes["previous_wins"]
             self.model_ties += outcomes["ties"]

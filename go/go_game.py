@@ -74,7 +74,7 @@ class GoGame(Game):
     #   - A move threshold (7 x 7 x 2 = 98)
     #   - Both players passing
     # Self play uses Tromp-Taylor rules (todo)
-    def getGameEndedSelfPlay(self, board, return_score=False, enable_resignation_threshold=False):
+    def getGameEndedSelfPlay(self, board, return_score=False):
         winner = 0
         (score_black, score_white) = self.getScore(board)
         by_score = 0.5 * ((board.n * board.n) + board.komi)
@@ -164,6 +164,7 @@ class GoGame(Game):
 
         if return_score:
             return winner, (score_black, score_white)
+
         return winner
 
     # Arena games can terminate according to:
@@ -386,20 +387,6 @@ class GoGame(Game):
     def stringRepresentation(self, board):
         # 8x8 numpy array (canonical board)
         return np.array(board.pieces).tostring()
-
-    def action_space_to_GTP(self, action):
-        # supports up to 26 x 26 boards
-        coords = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-                  'u', 'v', 'w', 'x', 'y', 'z']
-
-        if action == self.getBoardSize()[0] ** 2:
-            return f''
-
-        # x coord = action / board_size
-        # y coord = action % board_size
-
-        # return column + row (in form: 'aa', 'df', 'cd', etc.)
-        return f'{coords[int(action / self.getBoardSize()[0])]}' + f'{coords[int(action % self.getBoardSize()[0])]}'
 
     def getCanonicalHistory(self, x_boards, y_boards, canonicalBoard, player_board):
         history = []
