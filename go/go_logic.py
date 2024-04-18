@@ -79,6 +79,27 @@ class Board:
     def get_canonical_history(self):
         return self.canonical_history
 
+    def set_current_player(self, new_player):
+        if self.current_player == new_player:
+            return
+        else:
+            self.current_player = new_player
+            self.x_boards, self.y_boards = self.y_boards, self.x_boards
+            new_history = []
+            for i in range(len(self.x_boards)):
+                new_history.append(self.x_boards[i])
+                new_history.append(self.y_boards[i])
+            if self.current_player == 1:
+                new_history.append(np.ones((self.n, self.n)))
+                new_history.append(np.zeros((self.n, self.n)))
+            else:
+                new_history.append(np.zeros((self.n, self.n)))
+                new_history.append(np.zeros((self.n, self.n)))
+            new_history.append(self.make_sensibility_layer())
+            self.canonical_history = new_history
+            
+
+
     #def get_canonical_history_with_update(self):
         """
         Method to construct the game history from the perspective of the current player

@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
-import cv2
+#import cv2
 
 from heatmap_generator import MapGenerator
 from go.go_game import GoGame as Game
@@ -130,7 +130,7 @@ def generate_video():
     # Array images should only consider 
     # the image files ignoring others if any 
     #print(images)  
-    frame = cv2.imread(os.path.join(image_folder, images[0])) 
+    """frame = cv2.imread(os.path.join(image_folder, images[0])) 
     # setting the frame width, height width 
     # the width, height of first image 
     height, width, layers = frame.shape   
@@ -141,7 +141,7 @@ def generate_video():
         video.write(cv2.imread(image))  
     # Deallocating memories taken for window creation 
     cv2.destroyAllWindows()  
-    video.release()  # releasing the video generated 
+    video.release()  # releasing the video generated """
 
 #TODO -- REMOVE deterministic
 def log_analysis_data(board, counts, action):
@@ -269,9 +269,11 @@ def generate_move(color):
     global board, mcts, filename, neural_network, move_count
 
     if color == BLACK:
-        board.current_player  = 1
+        board.set_current_player(1)
     else:
-        board.current_player = -1
+        board.set_current_player(-1)
+    print(f"Set Current Player to {board.current_player}")
+
     
 
     #canonicalBoard = game.getCanonicalForm(board, curPlayer)
@@ -294,7 +296,7 @@ def generate_move(color):
     else:
         action = np.argmax(counts)
     """
-    log_analysis_data(board, counts, action)
+    #log_analysis_data(board, counts, action)
 
     #Old way of getting action
     """action = np.argmax(
@@ -329,6 +331,9 @@ def play(command):
     move_idx = command.find(" ", player_idx) + 1
 
     # player = gtp[player_idx]
+    player = 1 if command[player_idx].lower() == 'b' else -1
+    board.set_current_player(player)
+    print(f"Set Current Player to {board.current_player}")
     move = command[move_idx:]
 
     if move == "pass" or move == "PASS":
@@ -341,12 +346,12 @@ def play(command):
         col = ord(square_str[0]) - ord('A') + 1 - (1 if ord(square_str[0]) > ord('I') else 0)
         row_count = int(square_str[1:]) if len(square_str[1:]) > 1 else ord(square_str[1:]) - ord('0')
         """
-        if square_str[0] in letters:
-            col = letters.index(square_str[0])
+        if square_str[0].lower() in letters:
+            col = letters.index(square_str[0].lower())
         else:
             col = int(square_str[0])
-        if square_str[1] in letters:
-            row = letters.index(square_str[1])
+        if square_str[1].lower() in letters:
+            row = letters.index(square_str[1].lower())
         else:
             row = int(square_str[1])
         action = (row*7) + col
