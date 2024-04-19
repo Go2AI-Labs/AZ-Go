@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
-#import cv2
+import cv2
 
 from heatmap_generator import MapGenerator
 from go.go_game import GoGame as Game
@@ -46,7 +46,7 @@ if not os.path.exists(filename):
     f.close()
 
 
-config = ConfigHandler("config.yaml")
+config = ConfigHandler("/Users/blake/Research/Refactor_Codebase/AZ-Go/gtp/config.yaml")
 
 VERSION = '1.0'
 
@@ -68,9 +68,7 @@ if(len(argv) > 1):
 else:
     model_path = os.path.join("model_files", "model.tar")
 #neural_network.load_checkpoint("", model_path, cpu_only=True)
-neural_network.load_checkpoint("", "model.tar", cpu_only=True)
-
-coach = Coach(game, neural_network, config)
+neural_network.load_checkpoint("", "/Users/blake/Research/Model_W/weight_files/iter_19 copy.tar", cpu_only=True)
 
 # stones
 BLACK = 1
@@ -130,7 +128,7 @@ def generate_video():
     # Array images should only consider 
     # the image files ignoring others if any 
     #print(images)  
-    """frame = cv2.imread(os.path.join(image_folder, images[0])) 
+    frame = cv2.imread(os.path.join(image_folder, images[0])) 
     # setting the frame width, height width 
     # the width, height of first image 
     height, width, layers = frame.shape   
@@ -141,7 +139,7 @@ def generate_video():
         video.write(cv2.imread(image))  
     # Deallocating memories taken for window creation 
     cv2.destroyAllWindows()  
-    video.release()  # releasing the video generated """
+    video.release()  # releasing the video generated 
 
 #TODO -- REMOVE deterministic
 def log_analysis_data(board, counts, action):
@@ -266,13 +264,13 @@ def log_analysis_data(board, counts, action):
 
 
 def generate_move(color):
-    global board, mcts, filename, neural_network, move_count
+    global board, mcts, filename, neural_network, move_count, game
 
     if color == BLACK:
         board.set_current_player(1)
     else:
         board.set_current_player(-1)
-    print(f"Set Current Player to {board.current_player}")
+    #print(f"Set Current Player to {board.current_player}")
 
     
 
@@ -296,19 +294,60 @@ def generate_move(color):
     else:
         action = np.argmax(counts)
     """
-    #log_analysis_data(board, counts, action)
+    log_analysis_data(board, counts, action)
 
     #Old way of getting action
     """action = np.argmax(
         mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, False, num_sims, temp=0))"""
     # Perform the move
-    board = game.getNextState(board, action)
-   
-    row = config["board_size"] - int(action / config["board_size"])
-    col_coords = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']
-    col = col_coords[action % 7]
-    coordinate = col + str(row)
+    if not os.path.exists("Engine_Debug.txt"):
+        with open("Engine_Debug.txt", "w") as f:
+            f.write("\n\n\n--------GENMOVE COMMAND--------\n")
+            f.write("--------GENMOVE COMMAND--------\n")
+            f.write("--------GENMOVE COMMAND--------\n")
+            f.write("Before Making Move\n")
+            f.write(f"Playing Move -- {action}\n")
+            f.write(f"Board Before:\n{board.pieces}\n")
+            f.write(f"History Before:\n{board.get_canonical_history()}\n")
+            f.write(f"Valids = {game.getValidMoves(board)}\n")
+            f.write(f"Player Before = {board.current_player}\n")
+    else:
+        with open("Engine_Debug.txt", "a") as f:
+            f.write("\n\n\n--------GENMOVE COMMAND--------\n")
+            f.write("--------GENMOVE COMMAND--------\n")
+            f.write("--------GENMOVE COMMAND--------\n")
+            f.write("Before Making Move\n")
+            f.write(f"Playing Move -- {action}\n")
+            f.write(f"Board Before:\n{board.pieces}\n")
+            f.write(f"History Before:\n{board.get_canonical_history()}\n")
+            f.write(f"Valids = {game.getValidMoves(board)}\n")
 
+    board = game.getNextState(board, action)
+
+    if action == 49:
+        coordinate = "pass"
+        row = "Z"
+        col = "Z"
+    else:
+        row = config["board_size"] - int(action / config["board_size"])
+        col_coords = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']
+        col = col_coords[action % 7]
+        coordinate = col + str(row)
+
+    if not os.path.exists("Engine_Debug.txt"):
+        with open("Engine_Debug.txt", "w") as f:
+            f.write(f"\nPlayed Move -- {action} Successfully\n")
+            f.write(f"Coords Used = C: {col} -- R: {row} ---> {coordinate}\n")
+            f.write(f"Board After:\n{board.pieces}\n")
+            f.write(f"History After:\n{board.get_canonical_history()}\n")
+            f.write(f"Next Player = {board.current_player}\n")
+    else:
+        with open("Engine_Debug.txt", "a") as f:
+            f.write(f"\nPlayed Move -- {action} Successfully\n")
+            f.write(f"Coords Used = C: {col} -- R: {row} ---> {coordinate}\n")
+            f.write(f"Board After:\n{board.pieces}\n")
+            f.write(f"History After:\n{board.get_canonical_history()}\n")
+            f.write(f"Next Player = {board.current_player}\n")
     # Update histories to prepare for next move
     #canonicalBoard = game.getCanonicalForm(board, curPlayer)
     """player_board = (c_boards[0], c_boards[1]) if curPlayer == 1 else (c_boards[1], c_boards[0])
@@ -333,15 +372,18 @@ def play(command):
     # player = gtp[player_idx]
     player = 1 if command[player_idx].lower() == 'b' else -1
     board.set_current_player(player)
-    print(f"Set Current Player to {board.current_player}")
+    #print(f"Set Current Player to {board.current_player}")
     move = command[move_idx:]
 
     if move == "pass" or move == "PASS":
         action = config["board_size"] * config["board_size"]
+        row = 9
+        col = 9
     else:
         # parse square
         square_str = command.split()[-1]
         letters = ["a", "b", "c", "d", "e", "f", "g"]
+        numbers = ["7", "6", "5", "4", "3", "2", "1"]
         """
         col = ord(square_str[0]) - ord('A') + 1 - (1 if ord(square_str[0]) > ord('I') else 0)
         row_count = int(square_str[1:]) if len(square_str[1:]) > 1 else ord(square_str[1:]) - ord('0')
@@ -350,7 +392,9 @@ def play(command):
             col = letters.index(square_str[0].lower())
         else:
             col = int(square_str[0])
-        if square_str[1].lower() in letters:
+        if square_str[1] in numbers:
+            row = numbers.index(square_str[1])
+        elif square_str[1].lower() in letters:
             row = letters.index(square_str[1].lower())
         else:
             row = int(square_str[1])
@@ -359,8 +403,46 @@ def play(command):
         # action = ((config["board_size"] - row_count) * config["board_size"]) + (col - 1)
         # square = row * BOARD_RANGE + col
 
+    if not os.path.exists("Engine_Debug.txt"):
+        with open("Engine_Debug.txt", "w") as f:
+            f.write("\n\n\n--------PLAY COMMAND--------\n")
+            f.write("--------PLAY COMMAND--------\n")
+            f.write("--------PLAY COMMAND--------\n")
+            f.write("Before Making Move\n")
+            f.write(f"Playing Move -- {action}\n")
+            f.write(f"Board Before:\n{board.pieces}\n")
+            f.write(f"History Before:\n{board.get_canonical_history()}\n")
+            f.write(f"Valids = {game.getValidMoves(board)}\n")
+            f.write(f"Player Before = {board.current_player}\n")
+    else:
+        with open("Engine_Debug.txt", "a") as f:
+            f.write("\n\n\n--------PLAY COMMAND--------\n")
+            f.write("--------PLAY COMMAND--------\n")
+            f.write("--------PLAY COMMAND--------\n")
+            f.write("Before Making Move\n")
+            f.write(f"Playing Move -- {action}\n")
+            f.write(f"Board Before:\n{board.pieces}\n")
+            f.write(f"History Before:\n{board.get_canonical_history()}\n")
+            f.write(f"Valids = {game.getValidMoves(board)}\n")
+
     # make move on board
     board = game.getNextState(board, action)
+
+    if action < 49:
+        if not os.path.exists("Engine_Debug.txt"):
+            with open("Engine_Debug.txt", "w") as f:
+                f.write(f"\nPlayed Move -- {action} Successfully\n")
+                f.write(f"Coords Used = C: {col} -- R: {row} ---> {action}\n")
+                f.write(f"Board After:\n{board.pieces}\n")
+                f.write(f"History After:\n{board.get_canonical_history()}\n")
+                f.write(f"Next Player = {board.current_player}\n")
+        else:
+            with open("Engine_Debug.txt", "a") as f:
+                f.write(f"\nPlayed Move -- {action} Successfully\n")
+                f.write(f"Coords Used = C: {col} -- R: {row} ---> {action}\n")
+                f.write(f"Board After:\n{board.pieces}\n")
+                f.write(f"History After:\n{board.get_canonical_history()}\n")
+                f.write(f"Next Player = {board.current_player}\n")
 
     """# Update histories to prepare for next move
     canonicalBoard = game.getCanonicalForm(board, curPlayer)

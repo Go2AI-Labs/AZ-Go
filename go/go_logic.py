@@ -77,25 +77,32 @@ class Board:
         self.current_player = 1
 
     def get_canonical_history(self):
-        return self.canonical_history
+        return self.canonical_history.copy()
 
     def set_current_player(self, new_player):
         if self.current_player == new_player:
             return
         else:
+            # Set new (current) player/flip x & y boards (current/opposing histories)
             self.current_player = new_player
             self.x_boards, self.y_boards = self.y_boards, self.x_boards
             new_history = []
+
+            # Move history (from boards matching new player)
             for i in range(len(self.x_boards)):
                 new_history.append(self.x_boards[i])
                 new_history.append(self.y_boards[i])
+            
+            # Sensibility Layer
+            new_history.append(self.make_sensibility_layer())
+
+            # Player boards (All 1s/0s)
             if self.current_player == 1:
                 new_history.append(np.ones((self.n, self.n)))
                 new_history.append(np.zeros((self.n, self.n)))
             else:
                 new_history.append(np.zeros((self.n, self.n)))
                 new_history.append(np.zeros((self.n, self.n)))
-            new_history.append(self.make_sensibility_layer())
             self.canonical_history = new_history
             
 
@@ -625,9 +632,9 @@ class Board:
         history_temp = []
         canonical_board = np.where(self.pieces != 0, self.pieces * self.current_player, 0)
         # new_x = np.copy(canonical_board)
-        new_x = np.where(canonical_board == 1, 1, 0)
+        new_x = np.where(canonical_board == 1, float(1), float(0))
         self.x_boards.append(new_x)
-        new_y = np.where(canonical_board == -1, 1, 0)
+        new_y = np.where(canonical_board == -1, float(1), float(0))
         self.y_boards.append(new_y)
 
         # Remove the oldest board state from history
