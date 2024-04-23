@@ -12,7 +12,7 @@ class ArenaManager:
         self.player2 = player2
         self.mcts1 = mcts1
         self.mcts2 = mcts2
-        self.game = GoGame(self.config["board_size"])
+        self.game = GoGame(self.config["board_size"], is_arena_game=True)
         self.gtp_logger = GTPLogger()
 
     def play_games(self, num_games):
@@ -49,7 +49,7 @@ class ArenaManager:
 
     def play_game(self):
         # print("Arena Game Started")
-        self.game = GoGame(self.config["board_size"])
+        self.game = GoGame(self.config["board_size"], is_arena_game=True)
         board = self.game.getInitBoard()
         players = [self.player2, None, self.player1]
 

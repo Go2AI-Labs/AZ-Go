@@ -50,7 +50,7 @@ config = ConfigHandler("/Users/blake/Research/Refactor_Codebase/AZ-Go/gtp/config
 
 VERSION = '1.0'
 
-game = Game(config["board_size"], is_engine_game=True)
+game = Game(config["board_size"], is_arena_game=True)
 neural_network = NNetWrapper(game, config)
 # Load in the specified model if given 
 # If no model is given, use model.tar

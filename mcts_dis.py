@@ -100,7 +100,10 @@ class MCTSDis:
         
         # If the current node is a leaf node (and not a terminal state)
         if s not in self.Ps or (s in self.Ps and player not in self.Ps[s]):
-            p, v = self.predict(board)
+            if self.is_self_play:
+                p, v = self.nnet.predict(board.get_canonical_history())
+            else:
+                p, v = self.predict(board)
             if s not in self.Ps:
                 self.Ps[s] = {}
                 self.Vs[s] = {}

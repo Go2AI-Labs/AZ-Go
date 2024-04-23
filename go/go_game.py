@@ -10,10 +10,10 @@ class GoGame(Game):
 
     # TODO: should is_engine_game be a part of config.yaml instead?
     # I don't think we want to couple engine code and the GoGame class - HL
-    def __init__(self, n, is_engine_game=False):
+    def __init__(self, n, is_arena_game=False):
         super().__init__()
         self.n = n
-        self.is_engine_game = is_engine_game
+        self.is_arena_game = is_arena_game
 
     def getInitBoard(self):
         # return initial board (numpy board)
@@ -52,7 +52,7 @@ class GoGame(Game):
         legalMoves = board.get_legal_moves(board.current_player)
         valids[-1] = 1
 
-        if self.is_engine_game and len(board.history) < 5:
+        if self.is_arena_game and len(board.history) < 5:
             valids[-1] = 0
 
         if len(legalMoves) == 0:
