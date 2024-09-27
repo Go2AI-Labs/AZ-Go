@@ -56,12 +56,14 @@ class Worker:
         """
         Helper function for handling multiprocessing pool for self play as specified in config.yaml
         """
-        with mp.Pool(self.config["num_parallel_games"]) as pool:
-            for i in range(self.config["num_parallel_games"]):
-                pool.apply_async(self.handle_self_play_lifecycle)
+        # with mp.Pool(self.config["num_parallel_games"]) as pool:
+        #     for i in range(self.config["num_parallel_games"]):
+        #         pool.apply_async(self.handle_self_play_lifecycle)
+        #
+        #     pool.close()
+        #     pool.join()
 
-            pool.close()
-            pool.join()
+        self.handle_self_play_lifecycle()
 
     # TODO: when do we want to reset the MCTS tree? Currently per thread batch, not per game for self_play
     def handle_self_play_lifecycle(self):
@@ -116,12 +118,13 @@ class Worker:
         """
         Helper function for handling multiprocessing pool for arena as specified in config.yaml
         """
-        with mp.Pool(self.config["num_parallel_games"]) as pool:
-            for i in range(self.config["num_parallel_games"]):
-                pool.apply_async(self.handle_arena_lifecycle)
-
-            pool.close()
-            pool.join()
+        # with mp.Pool(self.config["num_parallel_games"]) as pool:
+        #     for i in range(self.config["num_parallel_games"]):
+        #         pool.apply_async(self.handle_arena_lifecycle)
+        #
+        #     pool.close()
+        #     pool.join()
+        self.handle_arena_lifecycle()
 
     def handle_arena_lifecycle(self):
         """
@@ -148,5 +151,9 @@ class Worker:
         file_name = (f'{self.sensitive_config["worker_machine_tag"]}_{randint(1, 1000)}' + '.json')
         local_path = os.path.join(DIS_ARENA_PATH, file_name)
         save_json_to_disk(data=outcomes, local_path=local_path)
+
+        print(f"Filename: {file_name}")
+        print(f"Outcomes: {outcomes}")
+
         self.connector.upload_arena_outcomes(local_path, file_name)
         os.remove(local_path)

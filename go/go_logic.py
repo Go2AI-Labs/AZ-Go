@@ -22,7 +22,7 @@ class Board:
         self.pieces = np.zeros((self.n, self.n))
 
         self.ko = None
-        self.komi = 6.5 if n <= 7 else 7.5  # set to decimal to prevent ties
+        self.komi = 9 if n <= 7 else 7.5  # set to decimal to prevent ties
         self.handicaps = []
         self.history = []
         self.num_black_prisoners = 0

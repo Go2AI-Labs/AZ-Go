@@ -1,4 +1,5 @@
 from enum import Enum
+from random import randint
 
 from definitions import CONFIG_PATH
 from utils.config_handler import ConfigHandler
@@ -11,22 +12,37 @@ class GameType(Enum):
     ARENA = "Arena"
 
 
+class PlayerType(Enum):
+    PREVIOUS = "Previous_Model"
+    CURRENT = "Current_Model"
+
+    def __str__(self):
+        return self.value
+
+
 class GTPLogger:
 
     def __init__(self):
         self.config = ConfigHandler(CONFIG_PATH)
         self.board_size = self.config["board_size"]
         self.action_history = []
+        self.player_black = "TCU_AlphaGo"
+        self.player_white = "TCU_AlphaGo"
+
+    def set_players(self, player_black, player_white):
+        self.player_black = player_black
+        self.player_white = player_white
 
     def save_sgf(self, game_type):
         now = datetime.now()
         dt_string = now.strftime("%m.%d.%Y_%H:%M:%S")
 
-        file_name = GAME_HISTORY_PATH + f"/{game_type.value} at {dt_string}.sgf"
+        file_name = GAME_HISTORY_PATH + f"/{game_type.value} at {dt_string}_{randint(1, 1000)}.sgf"
+        print(file_name)
 
         sgf_file = open(file_name, 'a')
         sgf_file.write(
-            f"(;\nEV[AlphaGo Zero Game Record]\nGN[]\nDT[{dt_string}]\nPB[TCU_AlphaGo]\nPW[TCU_AlphaGo]"
+            f"(;\nEV[AlphaGo Zero Game Record]\nGN[]\nDT[{dt_string}]\nPB[{self.player_black}]\nPW[{self.player_white}]"
             f"\nSZ[{self.board_size}]\nRU["
             f"Tromp Taylor]\n\n")
 

@@ -52,14 +52,30 @@ class MCTSDis:
         s = board.getStringRepresentation()
         player = board.current_player
         counts = np.array([self.Nsa[(s, a)][player] if (s, a) in self.Nsa and player in self.Nsa[(s, a)] else 0 for a in range(self.game.getActionSize())])
+
         # Temp == 0 --> Return the action with the highest visit count
+
+        # Masks all moves but the highest visit count -> deterministic
+
+        # Test NN from single move sim
+        prob, outcome = self.nnet.predict(board.get_canonical_history())
+        print(f"NN move choice: {np.argmax(prob)}")
+
+
+        # print(f"Board: {board.getStringRepresentation()}")
+        # print(f"Board Canonical: {board.get_canonical_history()}")
+        # print(f"NN probabilty map: {prob}")
+
         if temp == 0:
             bestAs = np.array(np.argwhere(counts == np.max(counts))).flatten()
             bestA = np.random.choice(bestAs)
             probs = [0] * len(counts)
             probs[bestA] = 1
             return probs
+
         # Temp != 0 --> Return a random action
+
+        # Returns normalized distribution of all visited moves (question about what is visited here and how valids play into it?
         counts = [x ** (1. / temp) for x in counts]
         counts_sum = float(sum(counts))
         probs = [x / counts_sum for x in counts]
@@ -101,8 +117,11 @@ class MCTSDis:
         # If the current node is a leaf node (and not a terminal state)
         if s not in self.Ps or (s in self.Ps and player not in self.Ps[s]):
             if self.is_self_play:
+                # this does not rotate the boards? Why do we not do this on self-play?
                 p, v = self.nnet.predict(board.get_canonical_history())
+                # print(f"MCTS: NN move choice: {np.argmax(p)}")
             else:
+                # this does rotate the boards
                 p, v = self.predict(board)
             if s not in self.Ps:
                 self.Ps[s] = {}
@@ -121,6 +140,8 @@ class MCTSDis:
                 # If you have got dozens or hundreds of these messages you should pay attention to your NNet and/or training process.
                 # log.error("All valid moves were masked, doing a workaround.")
                 print("All valid moves were masked, doing a workaround...")
+                # raise AssertionError("All valid moves were masked")
+
                 self.Ps[s][player] = self.Ps[s][player] + valids
                 self.Ps[s][player] /= np.sum(self.Ps[s][player])
 
@@ -141,12 +162,12 @@ class MCTSDis:
         if self.is_root and self.is_self_play:
             noise = np.random.dirichlet([0.03] * len(self.game.filter_valid_moves(valids)))
             # use to keep track of index of next move's dirichlet noise if being used
-            noise_idx = -1 
+            noise_idx = -1
 
         # pick the action with the highest upper confidence bound
         for a in range(self.game.getActionSize()):
             if valids[a]:
-                if (s, a) in self.Qsa and player in self.Qsa[(s, a)] and self.Qsa[(s, a)][player] != None:
+                if (s, a) in self.Qsa and player in self.Qsa[(s, a)] and self.Qsa[(s, a)][player] is not None:
                     q = self.Qsa[(s, a)][player]
                     n_sa = self.Nsa[(s, a)][player]
                     ns = self.Ns[s][player]
@@ -161,8 +182,8 @@ class MCTSDis:
                 if self.is_root and self.is_self_play:
                     noise_idx += 1
                     p = (1 - 0.25) * p + 0.25 * noise[noise_idx]
-                u = q + self.cpuct * p * math.sqrt(ns) / (1 + n_sa)
 
+                u = q + self.cpuct * p * math.sqrt(ns) / (1 + n_sa)
                 if u > cur_best:
                     cur_best = u
                     best_act = a

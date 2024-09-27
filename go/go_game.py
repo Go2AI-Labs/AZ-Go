@@ -133,6 +133,7 @@ class GoGame(Game):
                     winner = 1e-4
             # score threshold is enabled, games can be ended early based on score
             elif black_difference > by_score or white_difference > by_score:
+                print("Self play ended early by score threshold")
                 if score_black > score_white:
                     if board.current_player == 1:
                         winner = 1
@@ -148,6 +149,7 @@ class GoGame(Game):
                     winner = 1e-4
             # allow maximum number of moves to end game in self play scoring
             elif len(board.history) >= 98:
+                print("Self play ended by maximum move count reached")
                 if score_black > score_white:
                     if board.current_player == 1:
                         winner = 1
@@ -212,6 +214,7 @@ class GoGame(Game):
             return winner, (score_black, score_white)
         return winner
 
+    # tromp taylor
     def getScore(self, board):
         score_white = np.sum(board.pieces == -1)
         score_black = np.sum(board.pieces == 1)
@@ -241,6 +244,22 @@ class GoGame(Game):
                     score_white += 1
         """score_white -= board.passes_white
         score_black -= board.passes_black"""
+        return (score_black, score_white)
+
+    # old score implementation, same as repo we originally forked from
+    def getScore_old_system(self, board):
+        score_white = np.sum(board.pieces == -1)
+        score_black = np.sum(board.pieces == 1)
+        empties = zip(*np.where(board.pieces == 0))
+        for empty in empties:
+            # Check that all surrounding points are of one color
+            if board.is_eyeish(empty, 1):
+                score_black += 1
+            elif board.is_eyeish(empty, -1):
+                score_white += 1
+        score_white += board.komi
+        score_white -= board.passes_white
+        score_black -= board.passes_black
         return (score_black, score_white)
 
     def get_reachable(self, board, reach_mat):
