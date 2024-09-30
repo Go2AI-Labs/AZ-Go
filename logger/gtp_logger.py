@@ -10,6 +10,7 @@ from definitions import GAME_HISTORY_PATH
 class GameType(Enum):
     SELF_PLAY = "Self Play"
     ARENA = "Arena"
+    DEBUG = "Debug"
 
 
 class PlayerType(Enum):
@@ -63,7 +64,22 @@ class GTPLogger:
             return f''
 
         # return column + row (in form: 'aa', 'df', 'cd', etc.)
-        return f'{coords[int(action / self.board_size)]}' + f'{coords[int(action % self.board_size)]}'
+        return f'{coords[int(action % self.board_size)]}' + f'{coords[int(action / self.board_size)]}'
+
+    def convert_gtp_to_action(self, gtp):
+        # supports up to 26 x 26 boards
+        coords = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+                  'u', 'v', 'w', 'x', 'y', 'z']
+
+        if gtp == '':
+            # if it's an empty string, assume it's a pass
+            return self.board_size ** 2
+
+        col = coords.index(gtp[0])
+        row = coords.index(gtp[1])
+
+        # Return the corresponding action as an integer
+        return row * self.board_size + col
 
     def add_action(self, action, board):
         player_name = "B" if board.current_player == 1 else "W"
