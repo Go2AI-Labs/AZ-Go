@@ -1,0 +1,18 @@
+{
+    "id": "foo",
+    "initialStones": [
+        ["B", "Q4"],
+        ["B", "C4"]
+    ],
+    "moves": [
+        ["W", "P5"],
+        ["B", "P6"]
+    ],
+    "rules": "tromp-taylor",
+    "komi": 7.5,
+    "boardXSize": 19,
+    "boardYSize": 19,
+    "analyzeTurns": [0, 1, 2]
+}
+
+{'boardXSize': 7, 'boardYSize': 7, 'id': '0', 'includePolicy': True, 'initialStones': [], 'komi': 6.5, 'moves': [('b', 'D4'), ('w', 'C4')], 'rules': 'Chinese'}

@@ -24,3 +24,6 @@ build
 dist
 /distributed/arena
 /distributed/self_play
+console_output.txt
+/debug/analysis_logs
+/katago/analysis_logs
