@@ -59,7 +59,7 @@ class MCTSDis:
 
         # Test NN from single move sim
         prob, outcome = self.nnet.predict(board.get_canonical_history())
-        print(f"NN move choice: {np.argmax(prob)}")
+        # print(f"NN move choice: {np.argmax(prob)}")
 
 
         # print(f"Board: {board.getStringRepresentation()}")

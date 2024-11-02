@@ -1,4 +1,4 @@
-from distributed.worker import Worker
+from training.worker import Worker
 from utils.data_serializer import ensure_defined_directories_exist
 
 """

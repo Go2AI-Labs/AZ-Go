@@ -34,9 +34,7 @@ class SelfPlayManager:
             else:
                 is_full_search = False
 
-            is_full_search = True
-
-            print(f"Turn: {turn_count}, Temp: {temp}, is_full_search: {is_full_search}")
+            # print(f"Turn: {turn_count}, Temp: {temp}, is_full_search: {is_full_search}")
 
             pi = self.mcts.getActionProb(board, temp=temp, is_full_search=is_full_search)
 
@@ -47,10 +45,10 @@ class SelfPlayManager:
             else:
                 action = np.argmax(pi)
 
-            print(f"Player: {board.current_player}, Move: {action}")
+            # print(f"Player: {board.current_player}, Move: {action}")
 
-            p, v = self.neural_net.predict(board.get_canonical_history())
-            print(f"NN move; {np.argmax(p)}")
+            # p, v = self.neural_net.predict(board.get_canonical_history())
+            # print(f"NN move; {np.argmax(p)}")
 
             # # if passing, why?
             # if (action == 49):
@@ -71,19 +69,19 @@ class SelfPlayManager:
             # play the chosen move
             board = self.go_game.getNextState(board, action)
             result, score = self.go_game.getGameEndedSelfPlay(board.copy(), return_score=True, mcts=self.mcts)
-            old_score_system = self.go_game.getScore_old_system(board.copy())
+            # old_score_system = self.go_game.getScore_old_system(board.copy())
 
-            print(f"Old scoring :: Black Score: {old_score_system[0]}, White Score: {old_score_system[1]}")
-            print(f"Tromp Taylor :: Black Score: {score[0]}, White Score: {score[1]}")
-            print()
+            # print(f"Old scoring :: Black Score: {old_score_system[0]}, White Score: {old_score_system[1]}")
+            # print(f"Tromp Taylor :: Black Score: {score[0]}, White Score: {score[1]}")
+            # print()
 
         # save 10% of self play games
-        # if random.random() <= 0.10:
-        #     self.gtp_logger.save_sgf(GameType.SELF_PLAY)
-        # else:
-        #     self.gtp_logger.reset()
+        if random.random() <= 0.10:
+            self.gtp_logger.save_sgf(GameType.SELF_PLAY)
+        else:
+            self.gtp_logger.reset()
 
-        self.gtp_logger.save_sgf(GameType.SELF_PLAY)
+        # self.gtp_logger.save_sgf(GameType.SELF_PLAY)
 
         # return game result
         return [(x[0], x[2], result * ((-1) ** (x[1] != board.current_player))) for x in game_train_examples]

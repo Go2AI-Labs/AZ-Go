@@ -27,3 +27,4 @@ dist
 console_output.txt
 /debug/analysis_logs
 /katago/analysis_logs
+analysis_logs

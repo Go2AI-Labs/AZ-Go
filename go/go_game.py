@@ -141,7 +141,7 @@ class GoGame(Game):
                     winner = 1e-4
             # score threshold is enabled, games can be ended early based on score
             elif black_difference > by_score or white_difference > by_score:
-                print("Self play ended early by score threshold")
+                # print("Self play ended early by score threshold")
                 if score_black > score_white:
                     if board.current_player == 1:
                         winner = 1
@@ -157,7 +157,7 @@ class GoGame(Game):
                     winner = 1e-4
             # allow maximum number of moves to end game in self play scoring
             elif len(board.history) >= 98:
-                print("Self play ended by maximum move count reached")
+                # print("Self play ended by maximum move count reached")
                 if score_black > score_white:
                     if board.current_player == 1:
                         winner = 1
@@ -265,8 +265,8 @@ class GoGame(Game):
         #print(f"Black: {score_black}, White: {score_white}")
         if len(board.history) > 10 and board.history[-1] is not None:
             score_black, score_white = self.get_dead_stones(board, score_black, score_white, reach_mat)
-        else:
-            print("NOT CHECKING DEADSTONES")
+        # else:
+            # print("NOT CHECKING DEADSTONES")
         """score_white -= board.passes_white
         score_black -= board.passes_black"""
         return (score_black, score_white)
@@ -481,7 +481,7 @@ class GoGame(Game):
         if start_r != 7 and start_c != 7:
             # print("\nRIGHT BELOW")
             move_combos, contested_intersections_count = self.get_move_permutations(start_r+1, 7, start_c+1, 7, reach_mat, dead_territories['right_below'][2])
-            print(contested_intersections_count)
+            # print(contested_intersections_count)
             if contested_intersections_count > 0 and contested_intersections_count <= 2:
                 right_below_deadstones = True
             elif contested_intersections_count > 0 and (contested_intersections_count < 5 or (dead_territories['right_below'][2] == board.current_player and contested_intersections_count == 5)):

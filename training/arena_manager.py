@@ -76,8 +76,8 @@ class ArenaManager:
         result, score = self.game.getGameEndedArena(board, returnScore=True)
         old_score_system = self.game.getScore_old_system(board.copy())
 
-        print(f"Old scoring :: Black Score: {old_score_system[0]}, White Score: {old_score_system[1]}")
-        print(f"Tromp Taylor :: Black Score: {score[0]}, White Score: {score[1]}")
+        # print(f"Old scoring :: Black Score: {old_score_system[0]}, White Score: {old_score_system[1]}")
+        # print(f"Tromp Taylor :: Black Score: {score[0]}, White Score: {score[1]}")
 
         return result
 
