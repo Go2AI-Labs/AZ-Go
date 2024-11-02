@@ -32,10 +32,10 @@ class MCTS:
         self.Ps = {}  # stores initial policy (returned by neural net)
         self.smartSimNum = 10 * (self.game.getBoardSize()[0] ** 2)
         self.Es = {}  # stores game.getGameEnded ended for board s
+        self.Ss = {} # stores the score for board s
         self.Vs = {}  # stores game.getValidMoves for board s
 
-    def getActionProb(self, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, is_self_play, num_sims,
-                      temp=1):
+    def getActionProb(self, board, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, is_self_play, num_sims, temp=1):
         """
         This function performs numMCTSSims simulations of MCTS starting from
         canonicalBoard.
@@ -47,12 +47,12 @@ class MCTS:
         # removed min(num_MCTS_sims, smartsimnum)
         for i in range(num_sims):
             # print("\n--SIM #", i, "--")
-            self.search(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, 1, True, is_self_play)
+            self.search(board, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, 1, True, is_self_play)
 
         s = self.game.stringRepresentation(canonicalBoard)
 
         counts = np.array([self.Nsa[(s, a)] if (s, a) in self.Nsa else 0 for a in range(self.game.getActionSize())])
-        valids = self.game.getValidMoves(canonicalBoard, player=1, is_self_play=is_self_play)
+        valids = self.game.getValidMoves(board)
         self.smartSimNum = 10 * (np.count_nonzero(valids))
 
         # if np.sum(counts) == 0:
@@ -126,7 +126,7 @@ class MCTS:
 
         return probs * valids
 
-    def search(self, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, calls, is_root, is_self_play):
+    def search(self, board, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, calls, is_root, is_self_play):
         """
         This function performs one iteration of MCTS. It is recursively called
         till a leaf node is found. The action chosen at each node is one that
@@ -164,9 +164,9 @@ class MCTS:
         s = self.game.stringRepresentation(canonicalBoard)
         if s not in self.Es:
             if 1 in player_board[0]:
-                self.Es[s] = self.game.getGameEndedSelfPlay(canonicalBoard, 1)
+                self.Es[s], self.Ss[s] = self.game.getGameEndedSelfPlay(board, True)
             else:
-                self.Es[s] = self.game.getGameEndedSelfPlay(canonicalBoard, -1)
+                self.Es[s], self.Ss[s] = self.game.getGameEndedSelfPlay(board, True)
         if self.Es[s] != 0:
             return -self.Es[s]
 
@@ -185,7 +185,7 @@ class MCTS:
         if s not in self.Ps:
             # print("leaf node")
             self.Ps[s], v = self.nnet.predict(canonicalHistory)  # changed from board.pieces
-            valids = self.game.getValidMoves(canonicalBoard, 1, is_self_play)
+            valids = self.game.getValidMoves(board)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
             if sum_Ps_s > 0:
@@ -209,7 +209,11 @@ class MCTS:
                 perspective = -1
 
             # do not use score threshold in MCTS
-            gameEnd = self.game.getGameEndedSelfPlay(canonicalBoard, perspective)
+            if s not in self.Es:
+                self.Es[s], self.Ss[s] = self.game.getGameEndedSelfPlay(board, True)
+                gameEnd = self.Es[s]
+            else:
+                gameEnd = self.Es[s]
             if gameEnd != 0:
                 return -gameEnd
             return -v
@@ -256,13 +260,13 @@ class MCTS:
         # print("in MCTS.search, need next search, shifting player from 1")
 
         try:
-            next_s, next_player = self.game.getNextState(canonicalBoard, 1, a)
+            next_s, next_player = self.game.getNextState(board, a)
 
             # print("in MCTS.search, need next search, next player is {}".format(next_player))
         except:
             # print("###############在search内部节点出现错误：###########")
             # print("action:{},valids:{},Vs:{}".format(a,valids,self.Vs[s]))
-            valids = self.game.getValidMoves(canonicalBoard, 1, is_self_play)
+            valids = self.game.getValidMoves(board)
             self.Vs[s] = valids
             cur_best = -float('inf')
             best_act = -1
@@ -295,7 +299,7 @@ class MCTS:
             a = best_act
             # print("recalculate the valids vector:{} ".format(valids))
             try:
-                next_s, next_player = self.game.getNextState(canonicalBoard, 1, a)
+                next_s, next_player = self.game.getNextState(board, a)
             except:
                 return
 
@@ -315,7 +319,6 @@ class MCTS:
             assert (valids[a] != 0)
             self.Qsa[(s, a)] = (self.Nsa[(s, a)] * self.Qsa[(s, a)] + v) / (self.Nsa[(s, a)] + 1)
             self.Nsa[(s, a)] += 1
-
         else:
             self.Qsa[(s, a)] = v
             self.Nsa[(s, a)] = 1
@@ -323,3 +326,11 @@ class MCTS:
         self.Ns[s] += 1
 
         return -v
+    
+
+    def checkScoreCache(self, canonicalBoard):
+        s = self.game.stringRepresentation(canonicalBoard)
+        if s not in self.Ss:
+            return False, None
+        else:
+            return True, self.Ss[s]

@@ -70,7 +70,7 @@ class SelfPlayManager:
 
             # play the chosen move
             board = self.go_game.getNextState(board, action)
-            result, score = self.go_game.getGameEndedSelfPlay(board.copy(), return_score=True)
+            result, score = self.go_game.getGameEndedSelfPlay(board.copy(), return_score=True, mcts=self.mcts)
             old_score_system = self.go_game.getScore_old_system(board.copy())
 
             print(f"Old scoring :: Black Score: {old_score_system[0]}, White Score: {old_score_system[1]}")

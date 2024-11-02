@@ -68,12 +68,12 @@ class Arena:
             player_name = "B" if curPlayer == 1 else "W"
             action_history.append(f";{player_name}[{self.game.action_space_to_GTP(action)}]")
 
-            valids = self.game.getValidMoves(self.game.getCanonicalForm(board, curPlayer), 1, True)
+            valids = self.game.getValidMoves(board)
 
             # if valids[action] == 0:
             # print(action)
             # assert valids[action] >0
-            board, curPlayer = self.game.getNextState(board, curPlayer, action)
+            board, curPlayer = self.game.getNextState(board, action)
             x_boards, y_boards = y_boards, x_boards
 
         if verbose:

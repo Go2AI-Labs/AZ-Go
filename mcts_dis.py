@@ -24,7 +24,7 @@ class MCTSDis:
 
         self.Es = {}  # stores game.getGameEnded ended for board s
         self.Vs = {}  # stores game.getValidMoves for board s
-
+        self.Ss = {} # stores the score for board s
         self.is_self_play = is_self_play
         self.is_root = True
 
@@ -107,9 +107,9 @@ class MCTSDis:
         if s not in self.Es or (s in self.Es and player not in self.Es[s]):
             if s not in self.Es:
                 self.Es[s] = {}
-            self.Es[s][player] = self.game.getGameEndedSelfPlay(board)
+            self.Es[s][player], self.Ss[s] = self.game.getGameEndedSelfPlay(board, True)
         elif s in self.Es and (len(board.history) > 1 and (board.history[-1] is None and board.history[-2] is None)):
-            self.Es[s][player] = self.game.getGameEndedSelfPlay(board)
+            self.Es[s][player], self.Ss[s] = self.game.getGameEndedSelfPlay(board, True)
         if self.Es[s][player] != 0 and self.Es[s][player] is not None:
             # terminal node
             return -self.Es[s][player]
@@ -147,6 +147,11 @@ class MCTSDis:
 
             self.Vs[s][player] = valids
             self.Ns[s][player] = 0
+
+            if s not in self.Es or (s in self.Es and player not in self.Es[s]):
+                if s not in self.Es:
+                    self.Es[s] = {}
+                self.Es[s][player], self.Ss[s] = self.game.getGameEndedSelfPlay(board, True)
             return -v
 
         valids = self.Vs[s][player]
@@ -237,3 +242,10 @@ class MCTSDis:
 
     def update_next_mcts_state(self):
         self.is_root = False
+
+    def checkScoreCache(self, canonicalBoard):
+        s = self.game.stringRepresentation(canonicalBoard)
+        if s not in self.Ss:
+            return False, None
+        else:
+            return True, self.Ss[s]

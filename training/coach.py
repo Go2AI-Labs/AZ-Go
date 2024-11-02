@@ -102,7 +102,7 @@ class Coach:
             else:
                 num_sims = self.config["num_fast_search_sims"]
                 use_noise = False
-            pi = self.mcts.getActionProb(canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, use_noise,
+            pi = self.mcts.getActionProb(board, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, use_noise,
                                          num_sims, temp=temp)
             # get different symmetries/rotations of the board if full search was done
             if num_sims == self.config["num_full_search_sims"]:
@@ -115,20 +115,19 @@ class Coach:
             else:
                 action = np.argmax(pi)
             # play the chosen move
-            board, self.curPlayer = self.game.getNextState(board, self.curPlayer, action)
+            board = self.game.getNextState(board, action)
+            self.curPlayer = board.current_player
 
             if self.config["display"] == 1:
                 print("BOARD updated:")
                 print(display(board))
                 # get current game result
 
-            print(f"{board.copy()}")
-            print()
-            print(f"{self.curPlayer}")
+            # r, score = self.game.getGameEndedSelfPlay(board.copy(), self.curPlayer,
+            #                                           return_score=True,
+            #                                           enable_resignation_threshold=not disable_resignation_threshold)
+            r, score = self.game.getGameEndedSelfPlay(board.copy(), return_score=True, mcts=self.mcts)
 
-            r, score = self.game.getGameEndedSelfPlay(board.copy(), self.curPlayer,
-                                                      return_score=True,
-                                                      enable_resignation_threshold=not disable_resignation_threshold)
             if self.config["display"] == 1:
                 print(f"Current score: b {score[0]}, W {score[1]}")
 
@@ -319,7 +318,8 @@ class Coach:
         total_time = 0
         for eps in range(loop_iters):
             start_time = time.time()
-            self.mcts = MCTS(self.game, self.nnet, self.config)
+            # self.mcts = MCTS(self.game, self.nnet, self.config)
+            self.mcts = MCTS(self.game, self.nnet)
             self.iterationTrainExamples += self.executeEpisode(iteration=iteration_num)
 
             game_count += 1
