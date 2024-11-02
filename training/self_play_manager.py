@@ -57,12 +57,10 @@ class SelfPlayManager:
             result, score = self.go_game.getGameEndedSelfPlay(board.copy(), return_score=True, mcts=self.mcts)
 
         # save 10% of self play games
-        # if random.random() <= 0.10:
-        #     self.gtp_logger.save_sgf(GameType.SELF_PLAY)
-        # else:
-        #     self.gtp_logger.reset()
-
-        self.gtp_logger.save_sgf(GameType.SELF_PLAY)
+        if random.random() <= 0.10:
+            self.gtp_logger.save_sgf(GameType.SELF_PLAY)
+        else:
+            self.gtp_logger.reset()
 
         # return game result
         return [(x[0], x[2], result * ((-1) ** (x[1] != board.current_player))) for x in game_train_examples]
