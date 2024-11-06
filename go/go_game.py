@@ -79,8 +79,8 @@ class GoGame(Game):
         score_is_cached = False
         score = None
         if mcts is not None:
-            canonicalBoard = self.getCanonicalForm(board, board.current_player)
-            score_is_cached, score = mcts.checkScoreCache(canonicalBoard)
+            # canonicalBoard = self.getCanonicalForm(board, board.current_player)
+            score_is_cached, score = mcts.checkScoreCache(board)
         if score_is_cached:
             (score_black, score_white) = score
         else:
@@ -181,9 +181,18 @@ class GoGame(Game):
     #   - A move threshold (7 x 7 x 2 = 98)
     #   - Both players passing
     # Arena uses the Chinese ruleset (todo)
-    def getGameEndedArena(self, board, returnScore=False):
+    def getGameEndedArena(self, board, returnScore=False, mcts1=None, mcts2=None):
         winner = 0
-        (score_black, score_white) = self.getScore(board)
+        score_is_cached = False
+        score = None
+        if mcts1 is not None:
+            score_is_cached, score = mcts1.checkScoreCache(board)
+        if mcts2 is not None and not score_is_cached:
+            score_is_cached, score = mcts2.checkScoreCache(board)
+        if score_is_cached:
+            (score_black, score_white) = score
+        else:
+            (score_black, score_white) = self.getScore(board)
 
         # limit games to 98 moves, determine winner based on score of current board
         if len(board.history) >= 98:
@@ -263,7 +272,7 @@ class GoGame(Game):
                 print(f"({i}, {j}) - {board.liberty_sets[i][j]}")
             print("\n")"""
         #print(f"Black: {score_black}, White: {score_white}")
-        if len(board.history) > 10 and board.history[-1] is not None:
+        if len(board.history) > 10:
             score_black, score_white = self.get_dead_stones(board, score_black, score_white, reach_mat)
         # else:
             # print("NOT CHECKING DEADSTONES")

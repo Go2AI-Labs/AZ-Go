@@ -2,7 +2,7 @@ from definitions import CONFIG_PATH
 from go.go_game import GoGame
 from logger.gtp_logger import GTPLogger, GameType, PlayerType
 from utils.config_handler import ConfigHandler
-
+import numpy as np
 
 class ArenaManager:
 
@@ -61,24 +61,35 @@ class ArenaManager:
         print("Arena Game Started")
         self.game = GoGame(self.config["board_size"], is_arena_game=True)
         board = self.game.getInitBoard()
+        c_boards = [np.ones((7, 7)), np.zeros((7, 7))]
+        x_boards, y_boards = self.game.init_x_y_boards()
         players = [self.player2, None, self.player1]
 
         self.clear_mcts()
 
-        while self.game.getGameEndedArena(board) == 0:
-            action = players[board.current_player + 1](board)
+        while self.game.getGameEndedArena(board, False, self.mcts1, self.mcts2) == 0:
+            # Code for old MCTS
+            x_boards, y_boards = y_boards, x_boards
+            canonicalBoard = self.game.getCanonicalForm(board, board.current_player)
+            player_board = (c_boards[0], c_boards[1]) if board.current_player == 1 else (c_boards[1], c_boards[0])
+            canonicalHistory, x_boards, y_boards = self.game.getCanonicalHistory(x_boards, y_boards,
+                                                                                 canonicalBoard, player_board)
+            # print("History used to make move: ", canonicalHistory)
+
+            # action = players[board.current_player + 1](board)
+            #Code for old MCTS
+            action = players[board.current_player + 1](board, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, self.config["num_full_search_sims"])
             self.gtp_logger.add_action(action, board)
             board = self.game.getNextState(board, action)
             print(f"Player: {board.current_player}, Move: {action}")
 
         self.gtp_logger.save_sgf(GameType.ARENA)
 
-        result, score = self.game.getGameEndedArena(board, returnScore=True)
+        result, score = self.game.getGameEndedArena(board, True, self.mcts1, self.mcts2)
         old_score_system = self.game.getScore_old_system(board.copy())
 
         # print(f"Old scoring :: Black Score: {old_score_system[0]}, White Score: {old_score_system[1]}")
         # print(f"Tromp Taylor :: Black Score: {score[0]}, White Score: {score[1]}")
-
         return result
 
     def clear_mcts(self):

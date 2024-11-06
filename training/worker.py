@@ -10,7 +10,8 @@ from definitions import CONFIG_PATH, CHECKPOINT_PATH, SENS_CONFIG_PATH, DIS_SELF
 from distributed.ssh_connector import SSHConnector
 from distributed.status_manager import StatusManager, Status
 from go.go_game import GoGame
-from mcts_dis import MCTSDis as MCTS
+# from mcts_dis import MCTSDis as MCTS
+from mcts import MCTS as MCTS
 from neural_network.neural_net_wrapper import NNetWrapper
 from training.arena_manager import ArenaManager
 from training.self_play_manager import SelfPlayManager
@@ -139,8 +140,11 @@ class Worker:
         previous_mcts = MCTS(game=go_game, nnet=previous_net, is_self_play=False)
         current_mcts = MCTS(game=go_game, nnet=current_net, is_self_play=False)
 
-        prev_player = lambda x: np.argmax(previous_mcts.getActionProb(x, temp=0))
-        curr_player = lambda x: np.argmax(current_mcts.getActionProb(x, temp=0))
+        # prev_player = lambda x: np.argmax(previous_mcts.getActionProb(x, temp=0))
+        # curr_player = lambda x: np.argmax(current_mcts.getActionProb(x, temp=0))
+
+        prev_player = lambda x, y, z, a, b, c, d: np.argmax(previous_mcts.getActionProb(x, y, z, a, b, c, d, temp=0))
+        curr_player = lambda x, y, z, a, b, c, d: np.argmax(current_mcts.getActionProb(x, y, z, a, b, c, d, temp=0))
 
         arena = ArenaManager(prev_player, curr_player, previous_mcts, current_mcts)
 

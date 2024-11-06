@@ -22,17 +22,35 @@ class SelfPlayManager:
         board = self.go_game.getInitBoard()
         turn_count = 0
         result = 0
+        # For new MCTS
+        c_boards = [np.ones((7, 7)), np.zeros((7, 7))]
+        x_boards, y_boards = self.go_game.init_x_y_boards()
 
         while result == 0:
             turn_count += 1
             temp = int(turn_count < self.config["temperature_threshold"])
+            # Code for old MCTS
+            x_boards, y_boards = y_boards, x_boards
 
+            # if random.random() <= 0.25:
+            #     is_full_search = True
+            # else:
+            #     is_full_search = False
+
+            # pi = self.mcts.getActionProb(board, temp=temp, is_full_search=is_full_search)
+
+            # Code for old MCTS
+            canonicalBoard = self.go_game.getCanonicalForm(board, board.current_player)
+            player_board = (c_boards[0], c_boards[1]) if board.current_player == 1 else (c_boards[1], c_boards[0])
+            canonicalHistory, x_boards, y_boards = self.go_game.getCanonicalHistory(x_boards, y_boards, canonicalBoard, player_board)
             if random.random() <= 0.25:
+                num_sims = self.config["num_full_search_sims"]
                 is_full_search = True
             else:
+                num_sims = self.config["num_fast_search_sims"]
                 is_full_search = False
 
-            pi = self.mcts.getActionProb(board, temp=temp, is_full_search=is_full_search)
+            pi = self.mcts.getActionProb(board, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, num_sims, temp=temp)
 
             # choose a move
             if temp == 1:
@@ -61,6 +79,6 @@ class SelfPlayManager:
             self.gtp_logger.save_sgf(GameType.SELF_PLAY)
         else:
             self.gtp_logger.reset()
-
+        
         # return game result
         return [(x[0], x[2], result * ((-1) ** (x[1] != board.current_player))) for x in game_train_examples]
