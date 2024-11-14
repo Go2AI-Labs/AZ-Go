@@ -158,13 +158,13 @@ class MCTS:
         s = self.game.stringRepresentation(canonicalBoard)
         non_canonical_s = self.game.stringRepresentation(board)
         if s not in self.Es:
-                self.Es[s], self.Ss[non_canonical_s] = self.game.getGameEndedSelfPlay(board, True, self)
+                # self.Es[s], self.Ss[non_canonical_s] = self.game.getGameEndedSelfPlay(board, True, self)
+                self.Es[s], self.Ss[non_canonical_s] = self.game.getGameEndedArena(board, True, None, None)
         if self.Es[s] != 0:
             return -self.Es[s]
 
         # See if recursion limit has been reached
         if calls > 500:
-            # print("#### MCTS Recursive Base Case Triggered ####")
             return 1e-4
 
         # Get current game history if terminal state not found
@@ -187,7 +187,6 @@ class MCTS:
 
                 # NB! All valid moves may be masked if either your NNet architecture is insufficient or you've get overfitting or something else.
                 # If you have got dozens or hundreds of these messages you should pay attention to your NNet and/or training process.
-                print("All valid moves were masked, do workaround.")
                 self.Ps[s] = self.Ps[s] + valids
                 self.Ps[s] /= np.sum(self.Ps[s])
 
@@ -196,7 +195,8 @@ class MCTS:
 
             # do not use score threshold in MCTS
             if s not in self.Es:
-                self.Es[s], self.Ss[non_canonical_s] = self.game.getGameEndedSelfPlay(board, True, self)
+                # self.Es[s], self.Ss[non_canonical_s] = self.game.getGameEndedSelfPlay(board, True, self)
+                self.Es[s], self.Ss[non_canonical_s] = self.game.getGameEndedArena(board, True, None, None)
                 gameEnd = self.Es[s]
             else:
                 gameEnd = self.Es[s]
@@ -204,11 +204,10 @@ class MCTS:
                 return -gameEnd
             return -v
 
+        # Current state is not a leaf node
         valids = self.Vs[s]
         cur_best = -float('inf')
         best_act = -1
-
-        # print("Valids in MCTS: ", valids)
         # pick the action with the highest upper confidence bound
         # add noise for root node prior probabilities (encourages exploration)
         if is_root and self.is_self_play:
@@ -246,8 +245,7 @@ class MCTS:
         # print("in MCTS.search, need next search, shifting player from 1")
 
         try:
-            next_s, next_player = self.game.getNextState(board, a)
-
+            next_s = self.game.getNextState(board, a)
             # print("in MCTS.search, need next search, next player is {}".format(next_player))
         except:
             # print("###############在search内部节点出现错误：###########")
@@ -284,12 +282,13 @@ class MCTS:
 
             a = best_act
             # print("recalculate the valids vector:{} ".format(valids))
-            try:
-                next_s, next_player = self.game.getNextState(board, a)
-            except:
-                return
+            # try:
+            next_s = self.game.getNextState(board, a)
+            # except:
+            #     print(f"RETURNING Exception -- Tried Action {a}")
+            #     return
 
-        next_s = self.game.getCanonicalForm(next_s, next_player)
+        next_s_canonical = self.game.getCanonicalForm(next_s, next_s.current_player)
 
         if 1 in player_board[0]:
             player_board = (np.zeros((7, 7)), np.ones((7, 7)))
@@ -299,7 +298,7 @@ class MCTS:
         calls += 1
         x_boards, y_boards = y_boards, x_boards
 
-        v = self.search(next_s, canonicalHistory, x_boards, y_boards, player_board, calls, False)
+        v = self.search(next_s, next_s_canonical, canonicalHistory, x_boards, y_boards, player_board, calls, False)
 
         if (s, a) in self.Qsa:
             assert (valids[a] != 0)
@@ -310,7 +309,6 @@ class MCTS:
             self.Nsa[(s, a)] = 1
 
         self.Ns[s] += 1
-
         return -v
     
 
