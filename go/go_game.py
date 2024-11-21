@@ -55,6 +55,8 @@ class GoGame(Game):
 
         if self.is_arena_game and len(board.history) < 5:
             valids[-1] = 0
+        elif not self.is_arena_game and len(board.history) < 15:
+            valids[-1] = 0
 
         if len(legalMoves) == 0:
             return np.array(valids)
@@ -785,9 +787,19 @@ class GoGame(Game):
                 l += [(history_syms, list(newPi.ravel()) + [pi[-1]])]
         return l
 
-    def stringRepresentation(self, board):
+    def stringRepresentation(self, board, is_canonical=True):
         # 8x8 numpy array (canonical board)
-        return np.array(board.pieces).tostring()
+        board_string = ""
+        for i in range(len(board.history)):
+            if board.history[i] is None:
+                board_string += 'None'
+            else:
+                board_string += ''.join(str(val) for val in board.history[i])
+        if is_canonical:
+            board_string += str(board.current_player)
+        return board_string
+        # print(board_string)
+        # return np.array(board.pieces).tostring()
 
     def getCanonicalHistory(self, x_boards, y_boards, canonicalBoard, player_board):
         history = []

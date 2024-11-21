@@ -49,7 +49,7 @@ class MCTS:
         for i in range(num_sims):
             self.search(board, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, 1, True)
 
-        s = self.game.stringRepresentation(canonicalBoard)
+        s = self.game.stringRepresentation(canonicalBoard, is_canonical=True)
 
         counts = np.array([self.Nsa[(s, a)] if (s, a) in self.Nsa else 0 for a in range(self.game.getActionSize())])
         valids = self.game.getValidMoves(board)
@@ -155,8 +155,11 @@ class MCTS:
                 else:
                     return 0"""
         # See if game is in a terminal state
-        s = self.game.stringRepresentation(canonicalBoard)
-        non_canonical_s = self.game.stringRepresentation(board)
+        # NOTE: Changed string representation call!
+        # s = self.game.stringRepresentation(canonicalBoard)
+        s = self.game.stringRepresentation(canonicalBoard, is_canonical=True)
+        non_canonical_s = self.game.stringRepresentation(board, is_canonical=False)
+
         if s not in self.Es:
                 # self.Es[s], self.Ss[non_canonical_s] = self.game.getGameEndedSelfPlay(board, True, self)
                 self.Es[s], self.Ss[non_canonical_s] = self.game.getGameEndedArena(board, True, None, None)
@@ -309,11 +312,12 @@ class MCTS:
             self.Nsa[(s, a)] = 1
 
         self.Ns[s] += 1
+
         return -v
     
 
     def checkScoreCache(self, board):
-        non_canonical_s = self.game.stringRepresentation(board)
+        non_canonical_s = self.game.stringRepresentation(board, is_canonical=False)
         if non_canonical_s not in self.Ss:
             return False, None
         else:
