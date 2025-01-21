@@ -96,7 +96,7 @@ class MCTS:
                         print("has nsa, no qsa")
 
                 print(counts)
-
+            print(counts)
             probs = [0 for i in range(len(counts))]
             probs[bestA] = 1
 
@@ -113,6 +113,7 @@ class MCTS:
             return probs
 
         counts = [x ** (1. / temp) for x in counts]
+        print(f"COUNTS: {counts}")
         probs = [x / float(sum(counts)) for x in counts]
 
         for _ in range(self.game.getActionSize()):
@@ -179,7 +180,10 @@ class MCTS:
         # If current state is a leaf node, add this to the tree
         if s not in self.Ps:
             # print("leaf node")
-            self.Ps[s], v = self.nnet.predict(canonicalHistory)  # changed from board.pieces
+            if self.is_self_play:
+                self.Ps[s], v = self.nnet.predict(canonicalHistory)  # changed from board.pieces
+            else:
+                self.Ps[s], v = self.predict(board)  # changed from board.pieces
             valids = self.game.getValidMoves(board)
             self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
@@ -314,6 +318,22 @@ class MCTS:
         self.Ns[s] += 1
 
         return -v
+    
+    def predict(self, board):
+        # randomly rotate and flip before network predict
+        r = np.random.randint(8)
+        nnet_input = board.get_canonical_history()
+        nnet_input = board.rotate_history(r, nnet_input)
+        pi, v = self.nnet.predict(nnet_input)
+
+        # policy need to rotate and flip back
+        pi_board = np.reshape(pi[:-1], (self.game.n, self.game.n))
+        if r >= 4:
+            pi_board = np.fliplr(pi_board)
+        pi_board = np.rot90(pi_board, 4 - r % 4)
+        p = list(pi_board.ravel()) + [pi[-1]]
+
+        return p, v
     
 
     def checkScoreCache(self, board):

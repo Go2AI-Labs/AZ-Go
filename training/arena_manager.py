@@ -1,5 +1,5 @@
 from definitions import CONFIG_PATH
-from go.go_game import GoGame
+from go.go_game import GoGame, display
 from logger.gtp_logger import GTPLogger, GameType, PlayerType
 from utils.config_handler import ConfigHandler
 import numpy as np
@@ -81,7 +81,10 @@ class ArenaManager:
             action = players[board.current_player + 1](board, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, self.config["num_full_search_sims"])
             self.gtp_logger.add_action(action, board)
             board = self.game.getNextState(board, action)
-            print(f"Player: {board.current_player}, Move: {action}")
+        #     print(f"Player: {board.current_player}, Move: {action}")
+        #     print(display(board))
+        #     print("\n\n")
+        # print("\n\n")
 
         self.gtp_logger.save_sgf(GameType.ARENA)
 
