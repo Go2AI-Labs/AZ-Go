@@ -1,7 +1,7 @@
 import os
 import sys
 
-# TODO: Only used by the engine.py file. Update engine to remove this dependency
+# TODO: Only used by the engine_legacy.py file. Update engine to remove this dependency
 def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
