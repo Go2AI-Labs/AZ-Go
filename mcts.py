@@ -95,8 +95,8 @@ class MCTS:
                     if not flag_Nsa and flag_Qsa:
                         print("has nsa, no qsa")
 
-                print(counts)
-            print(counts)
+                # print(counts)
+            # print(counts)
             probs = [0 for i in range(len(counts))]
             probs[bestA] = 1
 
@@ -113,7 +113,7 @@ class MCTS:
             return probs
 
         counts = [x ** (1. / temp) for x in counts]
-        print(f"COUNTS: {counts}")
+        # print(f"COUNTS: {counts}")
         probs = [x / float(sum(counts)) for x in counts]
 
         for _ in range(self.game.getActionSize()):
