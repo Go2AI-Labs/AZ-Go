@@ -212,7 +212,9 @@ class NNetWrapper(NeuralNet):
         if not os.path.exists(filepath):
             raise BaseException("No model in path {}".format(filepath))
 
-        if cpu_only:
+        # if cpu_only:
+        # Load with CPU as the device if CUDA is not available
+        if not torch.cuda.is_available():
             checkpoint = torch.load(filepath, map_location=torch.device('cpu'))
         else:
             checkpoint = torch.load(filepath)
