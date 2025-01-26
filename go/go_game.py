@@ -855,23 +855,23 @@ class GoGame(Game):
 
 
 def display(board):
-    state = "  |"
+    state = "   |"
     b_pieces = np.array(board.pieces)
     n = 7
     alphabet = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S"]
-    divider = "--|"
+    divider = "---|"
     for y in range(n):
         # state = state + str(y) + "|"
         state += f" {alphabet[y]}"
         divider += "--"
     state += " |"
-    divider += "-|\n"
+    divider += "-|---\n"
 
     state += "\n"
     # state += " |---------------|------\n"
     state += divider
     for y in range(n):
-        state += f" {n-y}| "
+        state += f" {n-y} | "
         for x in range(n):
             piece = b_pieces[y][x]  # get the piece to print
             if piece == 1:
@@ -883,7 +883,7 @@ def display(board):
                     state += "-"
                 else:
                     state += "- "
-        state += "|\n"
+        state += f"| {alphabet[y]}\n"
 
     # state += " -----------------------"
     state += divider

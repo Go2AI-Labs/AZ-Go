@@ -56,6 +56,8 @@ class Engine:
             print('=\n')
         elif 'showboard' in command:
             self.print_board()
+        elif 'loadsgf' in command:
+            self.loadsgf(command)
         elif 'play' in command:
             self.play(command)
             print('=\n')
@@ -151,10 +153,47 @@ class Engine:
 
     # translate a GTP coordinate (str) to the corresponding action (int)
     def _gtp_coordinate_to_action(self, coord):
-        if coord == "pass" or coord == "PASS":
-            action = self.config["board_size"] * self.config["board_size"]
-        else: 
-            col = ord(coord[0]) - ord('A') + 1 - (1 if ord(coord[0]) > ord('I') else 0)
-            row_count = int(coord[1:]) if len(coord[1:]) > 1 else ord(coord[1:]) - ord('0')
-            action = ((self.config["board_size"] - row_count) * self.config["board_size"]) + (col - 1)
+        letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's']
+        if coord.lower() == "pass":
+            action = int(self.config["board_size"]) ** 2
+        else:
+            try:
+                col = letters.index(coord[0].lower())
+            except ValueError as e:
+                col = int(coord[0])
+            try:
+                row = letters.index(coord[1].lower())
+            except ValueError as e:
+                row = int(self.config["board_size"]) - int(coord[1])
+            action = (row * 7) + col
         return action
+    
+
+    # initialize board state from an SGF file
+    def loadsgf(self, command):
+        #Get SGF file as text
+        parsed_cmd = command.split(" ")
+        filepath = parsed_cmd[1]
+        with open(filepath) as f:
+            temp = f.read()
+        temp = temp.replace("(", "").replace(")", "")
+        #Get a list of moves and puzzle answer from the SGF file
+        sgf_info = temp.split(';')
+        sgf_info = sgf_info[2:]
+        moves = []
+        ans = []
+        for elt in sgf_info:
+            if "C" in elt:
+                finalElt = elt.split("C")
+                elt = finalElt[0]
+                raw_ans = finalElt[1].split(" ")[1]
+                ans = raw_ans.split(",")
+                ans[1] = ans[1].replace("]", "")        
+            parsed_move = elt.split("[")
+            parsed_move[1] = parsed_move[1].replace("]", "")
+            moves.append(parsed_move)
+        # play all moves contained in the SGF file
+        for m in moves:
+            fake_cmd = "play " + m[0] + " " + m[1]
+            print(f"MOVE :: {m} --- CMD :: {fake_cmd}")
+            self.play(fake_cmd)
