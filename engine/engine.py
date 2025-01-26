@@ -1,15 +1,18 @@
-import sys
 import os
-from definitions import CONFIG_PATH, CHECKPOINT_PATH
+import sys
+
+import numpy as np
+
+from definitions import CONFIG_PATH
 from go.go_game import GoGame, display
 from mcts import MCTS
 from neural_network.neural_net_wrapper import NNetWrapper
 from utils.config_handler import ConfigHandler
-import numpy as np
 
 MODEL = "Model W"
 VERSION = "2.0"
 PROTOCOL_VERSION = "1.0"
+
 
 class Engine:
 
@@ -22,12 +25,11 @@ class Engine:
         self.c_boards = [np.ones((7, 7)), np.zeros((7, 7))]
         self._set_player_board()
         self.canonicalBoard = self.go_game.getCanonicalForm(self.board, self.board.current_player)
-        self.canonicalHistory = self.go_game.getCanonicalHistory(self.x_boards, self.y_boards, self.canonicalBoard, self.player_board)
+        self.canonicalHistory = self.go_game.getCanonicalHistory(self.x_boards, self.y_boards, self.canonicalBoard,
+                                                                 self.player_board)
         self.neural_net = NNetWrapper(self.go_game, self.config)
-        # self.neural_net.load_checkpoint(CHECKPOINT_PATH, 'best.pth.tar')
-        self.neural_net.load_checkpoint(f"{os.getcwd()}/model_weights/", 'best.pth.tar')
+        self.neural_net.load_checkpoint(f"{os.getcwd()}/model_weights/", 'model.tar')
         self.mcts = MCTS(game=self.go_game, nnet=self.neural_net, is_self_play=False)
-
 
     # set the player_board tuple based on the current player
     def _set_player_board(self, player=None):
@@ -35,13 +37,13 @@ class Engine:
             current_player = self.board.current_player
         else:
             current_player = player
-        self.player_board = (self.c_boards[0], self.c_boards[1]) if current_player == 1 else (self.c_boards[1], self.c_boards[0])
-
+        self.player_board = (self.c_boards[0], self.c_boards[1]) if current_player == 1 else (
+            self.c_boards[1], self.c_boards[0])
 
     # run the command passed to the engine
     def run_command(self, command):
         if 'name' in command:
-            print(self.name())
+            print(f"{self.name()}\n")
         elif 'protocol_version' in command:
             print(f'= {PROTOCOL_VERSION}\n')
         elif 'version' in command:
@@ -71,12 +73,10 @@ class Engine:
         else:
             print('=\n')  # skip unsupported commands
 
-
     ## maybe this could be a command line argument for better compatibility with PyInstaller?
     # commands
     def name(self):
         return f"TCU Go2AI {MODEL}"
-    
 
     # change the board size for the game
     def set_board_size(self, command):
@@ -88,22 +88,18 @@ class Engine:
         else:
             print('? current board size not supported\n')
 
-
     # reset the board
     def clear_board(self):
         self.board = self.go_game.getInitBoard()
-
 
     def get_score(self):
         score = self.go_game.getScore(self.board)
         print(f"= {score}\n")
 
-
     # display the current board state
     def print_board(self):
         print('=')
         print(display(self.board))
-
 
     # execute a move given by a human or model, and update all data related to the game state
     def execute_move(self, action):
@@ -112,10 +108,12 @@ class Engine:
         # Update histories to prepare for next move
         self.canonicalBoard = self.go_game.getCanonicalForm(self.board, self.board.current_player)
         self._set_player_board()
-        self.canonicalHistory, self.x_boards, self.y_boards = self.go_game.getCanonicalHistory(self.x_boards, self.y_boards, self.canonicalBoard, self.player_board)
+        self.canonicalHistory, self.x_boards, self.y_boards = self.go_game.getCanonicalHistory(self.x_boards,
+                                                                                               self.y_boards,
+                                                                                               self.canonicalBoard,
+                                                                                               self.player_board)
         # player will switch, so switch x and y boards (current/opposing player histories)
         self.x_boards, self.y_boards = self.y_boards, self.x_boards
-
 
     # play a move given by a human
     def play(self, command):
@@ -127,20 +125,20 @@ class Engine:
         action = self._gtp_coordinate_to_action(coord=move)
         self.execute_move(action)
 
-
     # generate and play a move provided by the model
     def generate_move(self):
         # prepare necessary data structures for the move
         self.canonicalBoard = self.go_game.getCanonicalForm(self.board, self.board.current_player)
         self._set_player_board()
         # generate a move based on most recent board state
-        action = np.argmax(self.mcts.getActionProb(self.board, self.canonicalBoard, self.canonicalHistory, self.x_boards, self.y_boards, self.player_board, self.config["num_full_search_sims"], temp=0))
+        action = np.argmax(
+            self.mcts.getActionProb(self.board, self.canonicalBoard, self.canonicalHistory, self.x_boards,
+                                    self.y_boards, self.player_board, self.config["num_full_search_sims"], temp=0))
         # perform the move
         self.execute_move(action)
         # print the GTP coordinate of the move
         coordinate = self._action_to_gtp_coordinate(action)
         print(f"= {coordinate}\n")
-
 
     # translate an action (int) to the corresponding GTP coordinate (str)
     def _action_to_gtp_coordinate(self, action):
@@ -149,7 +147,6 @@ class Engine:
         col = col_coords[action % 7]
         coordinate = col + str(row)
         return coordinate
-    
 
     # translate a GTP coordinate (str) to the corresponding action (int)
     def _gtp_coordinate_to_action(self, coord):
@@ -167,17 +164,16 @@ class Engine:
                 row = int(self.config["board_size"]) - int(coord[1])
             action = (row * 7) + col
         return action
-    
 
     # initialize board state from an SGF file
     def loadsgf(self, command):
-        #Get SGF file as text
+        # Get SGF file as text
         parsed_cmd = command.split(" ")
         filepath = parsed_cmd[1]
         with open(filepath) as f:
             temp = f.read()
         temp = temp.replace("(", "").replace(")", "")
-        #Get a list of moves and puzzle answer from the SGF file
+        # Get a list of moves and puzzle answer from the SGF file
         sgf_info = temp.split(';')
         sgf_info = sgf_info[2:]
         moves = []
@@ -188,7 +184,7 @@ class Engine:
                 elt = finalElt[0]
                 raw_ans = finalElt[1].split(" ")[1]
                 ans = raw_ans.split(",")
-                ans[1] = ans[1].replace("]", "")        
+                ans[1] = ans[1].replace("]", "")
             parsed_move = elt.split("[")
             parsed_move[1] = parsed_move[1].replace("]", "")
             moves.append(parsed_move)
