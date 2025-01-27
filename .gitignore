@@ -29,3 +29,4 @@ console_output.txt
 /katago/analysis_logs
 analysis_logs
 /engine/best.pth.tar
+/engine/run_engine.spec

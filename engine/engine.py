@@ -43,7 +43,7 @@ class Engine:
     # run the command passed to the engine
     def run_command(self, command):
         if 'name' in command:
-            print(f"{self.name()}\n")
+            print(f"= {self.name()}\n")
         elif 'protocol_version' in command:
             print(f'= {PROTOCOL_VERSION}\n')
         elif 'version' in command:
