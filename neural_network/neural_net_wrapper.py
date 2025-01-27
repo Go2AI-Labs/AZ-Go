@@ -12,6 +12,7 @@ from torch.autograd import Variable
 from neural_network.neural_net import NeuralNet
 from pytorch_classification.utils import Bar, AverageMeter
 from .go_alphanet import AlphaNetMaker as NetMaker
+from .go_alphanet_deprecated import AlphaNetMakerDeprecated
 from .go_neural_net import GoNNet
 import matplotlib.pyplot as plt
 
@@ -28,8 +29,11 @@ class NNetWrapper(NeuralNet):
         if self.netType == 'RES':
             netMkr = NetMaker(game)
             self.nnet = netMkr.makeNet()
-        else:
+        elif self.netType == 'CNN':
             self.nnet = GoNNet(game, self.config)
+        elif self.netType == 'DEP':
+            maker = AlphaNetMakerDeprecated(game)
+            self.nnet = maker.makeNet()
 
         self.board_x, self.board_y = game.getBoardSize()
         self.action_size = game.getActionSize()
@@ -240,3 +244,18 @@ class NNetWrapper(NeuralNet):
             name = "module." + k  # add 'module.' of dataparallel, so it works with examples from plain model
             new_state_dict[name] = v
         self.nnet.load_state_dict(new_state_dict)
+
+    def load_checkpoint_without_sens_layer(self, folder='R_checkpoint', filename='R_checkpoint.pth.tar',
+                                               cpu_only=True):
+        filepath = os.path.join(folder, filename)
+        if not os.path.exists(filepath):
+            raise BaseException("No model in path {}".format(filepath))
+
+        # if cpu_only:
+        # Load with CPU as the device if CUDA is not available
+        if not torch.cuda.is_available():
+            checkpoint = torch.load(filepath, map_location=torch.device('cpu'))
+        else:
+            checkpoint = torch.load(filepath)
+
+        self.nnet.load_state_dict(checkpoint['state_dict'])

@@ -3,7 +3,7 @@ import sys
 
 import numpy as np
 
-from definitions import CONFIG_PATH
+from definitions import ROOT_DIR
 from go.go_game import GoGame, display
 from mcts import MCTS
 from neural_network.neural_net_wrapper import NNetWrapper
@@ -13,11 +13,20 @@ MODEL = "Model W"
 VERSION = "2.0"
 PROTOCOL_VERSION = "1.0"
 
-
+'''
+Based on ROOT_DIR pathing, the command: python run_engine.py
+can only be run from the root directory of this project (i.e. AZ-Go/).
+The script build_engine.sh can be run from any directory.
+'''
 class Engine:
 
     def __init__(self):
-        self.config = ConfigHandler(get_resource_path("engine_config.yaml"))
+        if is_frozen_state():
+            path = os.path.join(sys._MEIPASS, "engine_config.yaml")
+            self.config = ConfigHandler(path)
+        else:
+            self.config = ConfigHandler(f"{ROOT_DIR}/engine/engine_config.yaml")
+
         self.board_size = self.config['board_size']
         self.go_game = GoGame(self.board_size, is_arena_game=True)
         self.board = self.go_game.getInitBoard()
@@ -28,7 +37,12 @@ class Engine:
         self.canonicalHistory = self.go_game.getCanonicalHistory(self.x_boards, self.y_boards, self.canonicalBoard,
                                                                  self.player_board)
         self.neural_net = NNetWrapper(self.go_game, self.config)
-        self.neural_net.load_checkpoint(get_resource_path("./"), 'best.pth.tar')
+
+        if is_frozen_state():
+            self.neural_net.load_checkpoint(f"{sys._MEIPASS}", 'best.pth.tar')
+        else:
+            self.neural_net.load_checkpoint(f"{ROOT_DIR}/engine/", 'best.pth.tar')
+
         self.mcts = MCTS(game=self.go_game, nnet=self.neural_net, is_self_play=False, config=self.config)
 
     # set the player_board tuple based on the current player
@@ -195,10 +209,9 @@ class Engine:
             self.play(fake_cmd)
 
 
-# utility function for checking if Pyinstaller is being used for pathing
-def get_resource_path(relative_path):
+# to check for frozen environment when using utilities like Pyinstaller
+def is_frozen_state():
     if getattr(sys, 'frozen', False):
-        base_path = sys._MEIPASS
+        return True
     else:
-        base_path = os.getcwd()
-    return os.path.join(base_path, relative_path)
+        return False
