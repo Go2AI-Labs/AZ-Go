@@ -22,11 +22,17 @@ class MCTS:
             except ValueError:
                 return size - 1  # subtract current frame
 
-    def __init__(self, game, nnet, is_self_play):
+    def __init__(self, game, nnet, is_self_play, config=None):
         self.game = game
         self.nnet = nnet
         self.is_self_play = is_self_play
-        self.config = ConfigHandler(CONFIG_PATH)
+
+        # added for compatibility with Pyinstaller
+        if config is None:
+            self.config = ConfigHandler(CONFIG_PATH)
+        else:
+            self.config = config
+
         self.Qsa = {}  # stores Q values for s,a (as defined in the paper)
         self.Nsa = {}  # stores #times edge s,a was visited
         self.Ns = {}  # stores #times board s was visited

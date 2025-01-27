@@ -1,1 +1,0 @@
-Place model weight file in this directory

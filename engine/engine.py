@@ -17,7 +17,7 @@ PROTOCOL_VERSION = "1.0"
 class Engine:
 
     def __init__(self):
-        self.config = ConfigHandler(CONFIG_PATH)
+        self.config = ConfigHandler(get_resource_path("engine_config.yaml"))
         self.board_size = self.config['board_size']
         self.go_game = GoGame(self.board_size, is_arena_game=True)
         self.board = self.go_game.getInitBoard()
@@ -28,8 +28,8 @@ class Engine:
         self.canonicalHistory = self.go_game.getCanonicalHistory(self.x_boards, self.y_boards, self.canonicalBoard,
                                                                  self.player_board)
         self.neural_net = NNetWrapper(self.go_game, self.config)
-        self.neural_net.load_checkpoint(f"{os.getcwd()}/model_weights/", 'model.tar')
-        self.mcts = MCTS(game=self.go_game, nnet=self.neural_net, is_self_play=False)
+        self.neural_net.load_checkpoint(get_resource_path("./"), 'best.pth.tar')
+        self.mcts = MCTS(game=self.go_game, nnet=self.neural_net, is_self_play=False, config=self.config)
 
     # set the player_board tuple based on the current player
     def _set_player_board(self, player=None):
@@ -193,3 +193,12 @@ class Engine:
             fake_cmd = "play " + m[0] + " " + m[1]
             print(f"MOVE :: {m} --- CMD :: {fake_cmd}")
             self.play(fake_cmd)
+
+
+# utility function for checking if Pyinstaller is being used for pathing
+def get_resource_path(relative_path):
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.getcwd()
+    return os.path.join(base_path, relative_path)
