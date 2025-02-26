@@ -15,6 +15,7 @@ class NeuralNetManager:
 
         if self.config["load_model"]:
             self.current_net.load_checkpoint(f"{EXAMPLES_PATH}", 'best.pth.tar')
+            print("Loaded checkpoint model")
 
         # previous best network, init to None
         self.previous_net = None
