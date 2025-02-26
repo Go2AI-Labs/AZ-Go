@@ -26,7 +26,7 @@ debug_mode: false              # enable debug output
 num_full_search_sims: 400     # number of moves for MCTS to simulate
 temperature_threshold: 10     # number of moves before MCTS picks moves based only on max visit counts (temp = 1 until threshold, then temp = 0)
 acceptance_threshold: 0.54    # percentage of Arena games a new model must win to be accepted
-c_puct: 1.5                   # hyperparameter to control the degree of exploration in MCTS
+c_puct: 1.0                   # hyperparameter to control the degree of exploration in MCTS
 
 # Neural network parameters
 network_type: RES             # "RES" -> Use resnet | "CNN" -> use convolutional neural network | "DEP" -> deprecated, NN without SENS layer
