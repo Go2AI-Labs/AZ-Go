@@ -377,58 +377,7 @@ class Coach:
                             file.startswith('checkpoint_') and file.endswith('.pth.tar.examples')]
         self.latest_checkpoint = max(checkpoint_files, key=lambda x: int(x.split('_')[1].split('.')[0]))
         print("Loading checkpoint: ", self.latest_checkpoint)
-        start_iter = int(self.latest_checkpoint.split('_')[1].split('.')[0]) + 1
         self.load_train_examples()
-        # self.loadTrainExamples()
-        # return checkpoint_files, start_iter
-
-    """
-    def saveTrainExamples(self, iteration):
-        folder = self.config["checkpoint_directory"]
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        filename = os.path.join(folder, self.getCheckpointFile(iteration) + ".examples")
-        with open(filename, "wb") as f:  # Removed + after wb
-            # print('RAM Used before dump (GB):', psutil.virtual_memory()[3] / 1000000000)
-            is_error = True
-            while is_error:
-                try:
-                    Pickler(f).dump(self.trainExamplesHistory)
-                    is_error = False
-                except:
-                    is_error = True
-            f.closed  # Indented this by one
-    """
-
-    """
-    def loadTrainExamples(self):
-        modelFile = os.path.join(self.config["checkpoint_directory"], self.latest_checkpoint)
-        examplesFile = modelFile  # + ".examples"
-        if not os.path.isfile(examplesFile):
-            print(examplesFile)
-            r = input("File with trainExamples not found. Continue? [y|n]")
-            if r != "y":
-                sys.exit()
-        else:
-            if os.path.getsize(examplesFile) > 0:
-                # print("File Size: ", os.path.getsize(examplesFile))
-                print(f"File with trainExamples found. Read it: {examplesFile}")
-                with open(examplesFile, "rb") as f:
-                    is_error = True
-                    while is_error:
-                        # try:
-                        # print("Trying pickle")
-                        self.trainExamplesHistory = Unpickler(f).load()
-                        is_error = False
-                        except:
-                            print("Error while pickling")
-                            is_error = True
-                    f.closed  # Indented this by one
-            else:
-                print("File is empty")
-            # examples based on the model were already collected (loaded)
-            self.skipFirstSelfPlay = True
-    """
 
     def load_examples_from_path(self, file_path):
         examplesFile = file_path
@@ -593,23 +542,6 @@ class Coach:
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.connect(server, port, user, password)
         return client
-
-    # doesn't currently rename the file... which I think is fine
-    # def send_model_to_server(self):
-    #     local_path = os.path.join(self.config["checkpoint_directory"], 'best.pth.tar')
-    #     ssh = self.createSSHClient(self.sensitive_config["worker_server_address"], 22,
-    #                                self.sensitive_config["worker_username"], self.sensitive_config["worker_password"])
-    #     scp = SCPClient(ssh.get_transport())
-    #     scp.put(local_path, self.sensitive_config["distributed_models_directory"])
-    #     print("New model uploaded.")
-
-    # def send_training_updates_to_server(self, iteration):
-    #     local_path = os.path.join(self.config["checkpoint_directory"], 'training_update.txt')
-    #     ssh = self.createSSHClient(self.sensitive_config["worker_server_address"], 22,
-    #                                self.sensitive_config["worker_username"], self.sensitive_config["worker_password"])
-    #     scp = SCPClient(ssh.get_transport())
-    #     scp.put(local_path, self.sensitive_config["distributed_models_directory"])
-    #     print("Training update file uploaded.")
 
     def scan_examples_folder_and_load(self, game_limit):
         files = glob.glob(DIS_SELF_PLAY_PATH + "*")

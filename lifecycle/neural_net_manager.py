@@ -1,4 +1,4 @@
-from definitions import CONFIG_PATH, CHECKPOINT_PATH
+from definitions import CONFIG_PATH, CHECKPOINT_PATH, EXAMPLES_PATH
 from go.go_game import GoGame
 from neural_network.neural_net_wrapper import NNetWrapper as NNetWrapper
 from utils.config_handler import ConfigHandler
@@ -12,6 +12,10 @@ class NeuralNetManager:
 
         # neural networks
         self.current_net = NNetWrapper(self.go_game, self.config)
+
+        if self.config["load_model"]:
+            self.current_net.load_checkpoint(f"{EXAMPLES_PATH}", 'best.pth.tar')
+
         # previous best network, init to None
         self.previous_net = None
 
