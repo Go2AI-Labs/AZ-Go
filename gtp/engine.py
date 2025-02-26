@@ -14,7 +14,6 @@ from go.go_game import GoGame as Game
 from go.go_game import display
 from engine_mcts import MCTS
 from neural_network.neural_net_wrapper import NNetWrapper as NNetWrapper
-from training.coach import Coach
 from utils.config_handler import ConfigHandler
 from utils.path_handler import resource_path
 from definitions import CONFIG_PATH

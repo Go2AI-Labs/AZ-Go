@@ -9,7 +9,7 @@ from mcts import MCTS
 from neural_network.neural_net_wrapper import NNetWrapper
 from utils.config_handler import ConfigHandler
 
-MODEL = "Model W"
+MODEL = "Model Y"
 VERSION = "2.0"
 PROTOCOL_VERSION = "1.0"
 

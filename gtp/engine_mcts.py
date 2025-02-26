@@ -52,10 +52,8 @@ class MCTS:
             probs: a policy vector where the probability of the ith action is
                    proportional to Nsa[(s,a)]**(1./temp)
         """
-        if is_full_search:
-            num_sims = self.config["num_full_search_sims"]
-        else:
-            num_sims = self.config["num_fast_search_sims"]
+        num_sims = self.config["num_full_search_sims"]
+
         for i in range(num_sims):
             self.restore_root_state()
             self.search(board)

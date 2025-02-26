@@ -32,23 +32,13 @@ class SelfPlayManager:
             # Code for old MCTS
             x_boards, y_boards = y_boards, x_boards
 
-            # if random.random() <= 0.25:
-            #     is_full_search = True
-            # else:
-            #     is_full_search = False
-
-            # pi = self.mcts.getActionProb(board, temp=temp, is_full_search=is_full_search)
-
             # Code for old MCTS
             canonicalBoard = self.go_game.getCanonicalForm(board, board.current_player)
             player_board = (c_boards[0], c_boards[1]) if board.current_player == 1 else (c_boards[1], c_boards[0])
             canonicalHistory, x_boards, y_boards = self.go_game.getCanonicalHistory(x_boards, y_boards, canonicalBoard, player_board)
-            if random.random() <= 0.25:
-                num_sims = self.config["num_full_search_sims"]
-                is_full_search = True
-            else:
-                num_sims = self.config["num_fast_search_sims"]
-                is_full_search = False
+
+            num_sims = self.config["num_full_search_sims"]
+            is_full_search = True
 
             pi = self.mcts.getActionProb(board, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, num_sims, temp=temp)
 

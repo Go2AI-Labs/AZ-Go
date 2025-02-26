@@ -99,9 +99,6 @@ class Coach:
             if random.random() <= 0.25:
                 num_sims = self.config["num_full_search_sims"]
                 use_noise = True
-            else:
-                num_sims = self.config["num_fast_search_sims"]
-                use_noise = False
             pi = self.mcts.getActionProb(board, canonicalBoard, canonicalHistory, x_boards, y_boards, player_board, use_noise,
                                          num_sims, temp=temp)
             # get different symmetries/rotations of the board if full search was done

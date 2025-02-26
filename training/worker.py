@@ -10,7 +10,6 @@ from definitions import CONFIG_PATH, CHECKPOINT_PATH, SENS_CONFIG_PATH, DIS_SELF
 from distributed.ssh_connector import SSHConnector
 from distributed.status_manager import StatusManager, Status
 from go.go_game import GoGame
-# from mcts_dis import MCTSDis as MCTS
 from mcts import MCTS as MCTS
 from neural_network.neural_net_wrapper import NNetWrapper
 from training.arena_manager import ArenaManager
