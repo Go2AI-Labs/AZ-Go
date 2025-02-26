@@ -13,7 +13,7 @@ num_arena_episodes: 50       # number of evaluation games to determine which mod
 num_polling_games: 5          # number of games to play locally while waiting for distributed games (requires enable_distributed_training -> true)
 
 # training type parameters
-load_model: false
+load_model: true
 enable_distributed_training: true
 num_games_per_distributed_batch: 1  # number of games to play before uploading training examples to main server
 num_parallel_games: 12              # number of games for worker server to play in parallel during distributed training

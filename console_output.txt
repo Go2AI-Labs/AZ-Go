@@ -1,27 +1,11 @@
+Loaded checkpoint model
+Started iteration 1
+Number of train examples: 0/200000
 Traceback (most recent call last):
-  File "/mnt/sda/harrison/workers/worker-1/AZ-Go/start_worker.py", line 3, in <module>
-    from distributed.worker import Worker
-  File "/mnt/sda/harrison/workers/worker-1/AZ-Go/distributed/worker.py", line 14, in <module>
-    from neural_network.neural_net_wrapper import NNetWrapper
-  File "/mnt/sda/harrison/workers/worker-1/AZ-Go/neural_network/neural_net_wrapper.py", line 8, in <module>
-    import torch
-  File "/home/harrison/anaconda3/envs/torch/lib/python3.11/site-packages/torch/__init__.py", line 1465, in <module>
-    from . import _meta_registrations
-  File "/home/harrison/anaconda3/envs/torch/lib/python3.11/site-packages/torch/_meta_registrations.py", line 7, in <module>
-    from torch._decomp import _add_op_to_registry, global_decomposition_table, meta_table
-  File "/home/harrison/anaconda3/envs/torch/lib/python3.11/site-packages/torch/_decomp/__init__.py", line 169, in <module>
-    import torch._decomp.decompositions
-  File "/home/harrison/anaconda3/envs/torch/lib/python3.11/site-packages/torch/_decomp/decompositions.py", line 10, in <module>
-    import torch._prims as prims
-  File "/home/harrison/anaconda3/envs/torch/lib/python3.11/site-packages/torch/_prims/__init__.py", line 1114, in <module>
-    remainder = _make_elementwise_binary_prim(
-                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/harrison/anaconda3/envs/torch/lib/python3.11/site-packages/torch/_prims/__init__.py", line 446, in _make_elementwise_binary_prim
-    return _make_prim(
-           ^^^^^^^^^^^
-  File "/home/harrison/anaconda3/envs/torch/lib/python3.11/site-packages/torch/_prims/__init__.py", line 272, in _make_prim
-    prim.define(schema)
-  File "/home/harrison/anaconda3/envs/torch/lib/python3.11/site-packages/torch/library.py", line 69, in define
-    return self.m.define(schema, alias_analysis)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/sda/harrison/training/master-1/AZ-Go/start_main.py", line 11, in <module>
+    overseer.start()
+  File "/mnt/sda/harrison/training/master-1/AZ-Go/training/overseer.py", line 43, in start
+    self.lifecycle_manager.execute_self_play()
+  File "/mnt/sda/harrison/training/master-1/AZ-Go/lifecycle/lifecycle_manager.py", line 43, in execute_self_play
+    time.sleep(self.time_between_directory_checks)
 KeyboardInterrupt

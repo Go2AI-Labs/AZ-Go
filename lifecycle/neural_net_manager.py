@@ -14,7 +14,7 @@ class NeuralNetManager:
         self.current_net = NNetWrapper(self.go_game, self.config)
 
         if self.config["load_model"]:
-            self.current_net.load_checkpoint(f"{EXAMPLES_PATH}", 'best.pth.tar')
+            self.current_net.load_checkpoint(f"{CHECKPOINT_PATH}", 'best.pth.tar')
             print("Loaded checkpoint model")
 
         # previous best network, init to None
