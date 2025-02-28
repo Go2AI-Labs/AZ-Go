@@ -1,10 +1,10 @@
+from datetime import datetime
 from enum import Enum
 from random import randint
 
 from definitions import CONFIG_PATH
-from utils.config_handler import ConfigHandler
-from datetime import datetime
 from definitions import GAME_HISTORY_PATH
+from utils.config_handler import ConfigHandler
 
 
 class GameType(Enum):
@@ -30,8 +30,8 @@ class GTPLogger:
         self.player_black = "TCU_AlphaGo"
         self.player_white = "TCU_AlphaGo"
 
-        self.coords = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-                  'u', 'v', 'w', 'x', 'y', 'z']
+        self.coords = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
+                       't',' u', 'v', 'w', 'x', 'y', 'z']
 
     def set_players(self, player_black, player_white):
         self.player_black = player_black
@@ -94,3 +94,38 @@ class GTPLogger:
 
     def reset(self):
         self.action_history = []
+
+
+def load_sgf(file_path):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+
+        # Find all moves that start with 'B[' or 'W['
+        moves = []
+        i = 0
+        while i < len(content):
+            if content[i] == ';':
+                i += 1
+                # Check if the next character is 'B' or 'W'
+                if i < len(content) and content[i] in ['B', 'W']:
+                    i += 1  # Move past 'B' or 'W'
+                    # Check for opening bracket
+                    if i < len(content) and content[i] == '[':
+                        i += 1  # Move past '['
+                        # Extract the coordinates
+                        move_start = i
+                        # Find the closing bracket
+                        while i < len(content) and content[i] != ']':
+                            i += 1
+
+                        if i < len(content) and content[i] == ']':
+                            # Extract just the coordinates
+                            coordinates = content[move_start:i]
+                            moves.append(coordinates)
+            i += 1
+
+        return moves
+    except Exception as e:
+        print(f"Error reading SGF file: {e}")
+        return []
