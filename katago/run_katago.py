@@ -7,10 +7,8 @@ if __name__ == "__main__":
     gtp_logger = GTPLogger()
     katago = KataGoWrapper(KATAGO_START_CMD)
     try:
-        # time.sleep(5)  # Give KataGo time to initialize
-
         # load sgf
-        moves = load_sgf("sgf/figure_c_1.sgf")
+        moves = load_sgf("sgf/figure_c1.sgf")
         print(f"Moves: {moves}")
 
         # convert to array of moves useful to katago
