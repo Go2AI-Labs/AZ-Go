@@ -82,7 +82,7 @@ class KataGoWrapper:
         return response['rootInfo']['scoreLead']
 
     def get_nth_best_move(self, response, n: int):
-        return response['moveInfos'][n]['move']
+        return response['moveInfos'][n]
 
     # sends query to subprocess
     def _query_raw(self, query: Dict[str, any]):
