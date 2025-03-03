@@ -67,7 +67,12 @@ class KataGoWrapper:
 
             formatted_moves[idx] = [last_player, action]
 
-        query["moves"] = [value for key, value in formatted_moves.items()]
+        # Does not imply board history
+        query["initialStones"] = [value for key, value in formatted_moves.items()]
+        query["moves"] = []
+        query["initialPlayer"] = "white"
+
+        print(f"Query: {query}")
 
         return self._query_raw(query)
 
@@ -90,17 +95,22 @@ class KataGoWrapper:
                 raise Exception("KataGo has exited unexpectedly")
 
             line = self.katago.stdout.readline().decode().strip()
-
             # Check if a response has been received
             if line:
-                response = json.loads(line)
-                if "error" in response:
-                    print(f"KataGo Error: {response['error']}")
-                    return None
-                elif "rootInfo" not in response:
-                    print("Waiting for a complete response from KataGo...")
-                    time.sleep(0.1)  # Add a small delay to avoid busy waiting
+                try:
+                    response = json.loads(line)
+                    if "error" in response:
+                        print(f"KataGo Error: {response['error']}")
+                        raise Exception(f"KataGo Error: {response['error']}")
+                    elif "rootInfo" not in response:
+                        print("Waiting for a complete response from KataGo...")
+                        time.sleep(0.1)  # Add a small delay to avoid busy waiting
+                except json.JSONDecodeError:
+                    print(f"Failed to parse JSON response: {line}")
+                    time.sleep(0.1)
+                    continue
 
+        # Make sure we have a complete response before returning
         return response
 
     def close(self):

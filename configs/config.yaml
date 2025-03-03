@@ -1,7 +1,7 @@
 # configuration file for the program
 
 # Go Game configuration
-board_size: 7                 # N x N board for Go Game
+board_size: 9                 # N x N board for Go Game
 
 # TODO: Remove configuration parameters that are no longer used
 
