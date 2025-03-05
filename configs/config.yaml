@@ -1,7 +1,7 @@
 # configuration file for the program
 
 # Go Game configuration
-board_size: 9                 # N x N board for Go Game
+board_size: 7                 # N x N board for Go Game
 
 # TODO: Remove configuration parameters that are no longer used
 
@@ -23,7 +23,7 @@ display: 0                    # 0 -> display bar | 1 -> display board
 debug_mode: false              # enable debug output
 
 # MCTS parameters
-num_full_search_sims: 400     # number of moves for MCTS to simulate
+num_full_search_sims: 500     # number of moves for MCTS to simulate
 temperature_threshold: 10     # number of moves before MCTS picks moves based only on max visit counts (temp = 1 until threshold, then temp = 0)
 acceptance_threshold: 0.54    # percentage of Arena games a new model must win to be accepted
 c_puct: 1.0                   # hyperparameter to control the degree of exploration in MCTS
