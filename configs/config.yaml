@@ -6,7 +6,7 @@ board_size: 7                 # N x N board for Go Game
 # TODO: Remove configuration parameters that are no longer used
 
 # time parameters
-num_iterations: 200            # number of total iterations (Episodes + NN Training + Arena) to play
+num_iterations: 500            # number of total iterations (Episodes + NN Training + Arena) to play
 num_self_play_episodes: 5000   # number of data-generating games to play before training the neural network
 first_iter_num_games: 50      # number of games to play during the first iteration
 num_arena_episodes: 50       # number of evaluation games to determine which model to keep (new or old)
@@ -24,7 +24,7 @@ debug_mode: false              # enable debug output
 
 # MCTS parameters
 num_full_search_sims: 500     # number of moves for MCTS to simulate
-temperature_threshold: 10     # number of moves before MCTS picks moves based only on max visit counts (temp = 1 until threshold, then temp = 0)
+temperature_threshold: 4     # number of moves before MCTS picks moves based only on max visit counts (temp = 1 until threshold, then temp = 0)
 acceptance_threshold: 0.54    # percentage of Arena games a new model must win to be accepted
 c_puct: 1.0                   # hyperparameter to control the degree of exploration in MCTS
 
