@@ -42,6 +42,6 @@ back_to_top_text: "Back to top"
 aux_links:
   "GitHub":
     - "https://github.com/yourusername/AZ-Go"
-  "Notion (Model Archives)":
+  "Notion":
     - "https://harrisonleath.notion.site/ML-TCU-d58eaa8cde34425fae64342f42cc8f67"
 aux_links_new_tab: true
