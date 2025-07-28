@@ -59,26 +59,6 @@ For multi-node training:
    distributed_examples_directory: /home/user/dis/examples # directory on main server to send examples to
    ```
 
-## Configuration
-
-Edit `configs/config.yaml` to customize:
-
-```yaml
-# Board and game settings
-board_size: 7
-komi: 5.5
-
-# Training parameters
-num_iterations: 500
-num_episodes: 5000
-num_mcts_sims: 500
-
-# Neural network
-nn_channels: 128
-nn_depth: 18
-learning_rate: 0.01
-```
-
 ## Verify Installation
 
 Run a quick self-play game:
