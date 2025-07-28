@@ -13,39 +13,44 @@ AZ-Go implements a distributed training system that allows you to leverage multi
 ## Architecture Overview
 
 The distributed training system consists of:
-- **Main Node**: Orchestrates training, manages model updates, and coordinates workers
-- **Worker Nodes**: Generate self-play games using the latest model
-- **SSH Connectivity**: Secure communication between nodes
+- **Main Node (Overseer)**: Orchestrates training, manages model updates, and coordinates workers
+- **Worker Nodes**: Generate self-play games and arena matches using the latest models
+- **SSH Connectivity**: Workers connect to main node to download models and upload results
+- **Status-based Coordination**: Main node announces training phase via status.txt file
 
 ```
 ┌─────────────┐
 │  Main Node  │
-│  (Coach)    │
+│  (Overseer) │
 └─────┬───────┘
       │
-      ├─── SSH ──► Worker 1 (Self-Play)
-      ├─── SSH ──► Worker 2 (Self-Play)
-      └─── SSH ──► Worker N (Self-Play)
+      ├─── Status File ──► Worker 1 (Self-Play/Arena)
+      ├─── Status File ──► Worker 2 (Self-Play/Arena) 
+      └─── Status File ──► Worker N (Self-Play/Arena)
 ```
+
+Note: Workers poll the main node's status file to determine current training phase.
 
 ## Setting Up Distributed Training
 
-### 1. Configure Worker Nodes
+### 1. Configure Settings
 
-Edit `configs/config.yaml` to add your worker nodes:
+**Main Node Configuration:**
 
+Create `configs/sensitive.yaml` with main node details:
 ```yaml
-distributed:
-  enabled: true
-  workers:
-    - host: "worker1.example.com"
-      user: "username"
-      key_path: "~/.ssh/id_rsa"
-      gpu_id: 0
-    - host: "worker2.example.com"
-      user: "username"
-      key_path: "~/.ssh/id_rsa"
-      gpu_id: 1
+main_server_address: "main.example.com"  # Address workers will connect to
+main_username: "username"                # SSH username on main node
+main_directory: "/path/to/AZ-Go"        # Absolute path to AZ-Go on main
+```
+
+**Enable Distributed Training:**
+
+In `configs/config.yaml`, set:
+```yaml
+enable_distributed_training: true
+num_games_per_distributed_batch: 1      # Games before uploading to main
+num_parallel_games: 12                  # Parallel games per worker
 ```
 
 ### 2. Prepare Worker Environments
@@ -76,54 +81,62 @@ ssh-copy-id username@worker1.example.com
 
 ### 4. Start Training
 
-On the main node:
+**On the main node:**
 ```bash
-python start_main.py --distributed
+python start_main.py
 ```
+
+**On each worker node:**
+```bash
+python start_worker.py
+```
+
+Note: The `--distributed` flag is not used. Distributed mode is controlled by the `enable_distributed_training` setting in config.yaml.
 
 ## Worker Management
 
 ### Starting Workers
 
-Workers are automatically started by the main node via SSH. The process:
-1. Main node SSHs into worker
-2. Starts `start_worker.py` with appropriate parameters
-3. Worker begins self-play game generation
-4. Results are sent back to main node
+Workers must be manually started on each worker node. The process:
+1. SSH into each worker machine
+2. Navigate to the AZ-Go directory
+3. Run `python start_worker.py`
+4. Worker connects to main node and begins polling for status
+5. Worker automatically switches between self-play and arena modes based on main node status
 
-### Monitoring Workers
+### Monitoring Training Status
 
-Check worker status:
+Check current training phase:
 ```bash
-# View all worker statuses
+# View current training status
 cat distributed/status.txt
-
-# Monitor in real-time
-watch -n 1 cat distributed/status.txt
 ```
 
-### Worker Status Indicators
+Possible status values:
+- **self_play**: Workers should generate self-play games
+- **neural_net_training**: Main node is training the neural network
+- **arena**: Workers should run arena matches between models
 
-- **🟢 Active**: Worker is generating games
-- **🟡 Syncing**: Worker is updating its model
-- **🔴 Error**: Worker encountered an issue
-- **⚪ Offline**: Worker is not connected
+Note: The status.txt file indicates the current training phase, not individual worker statuses.
 
 ## Data Synchronization
 
 ### Model Distribution
 
-1. Main node trains new model iteration
-2. Model is serialized and compressed
-3. Distributed to all workers via SCP
-4. Workers load new model and resume self-play
+1. Main node saves models to `logs/checkpoints/`:
+   - `best.pth.tar`: Current best model for self-play
+   - `current_net.pth.tar`: New model for arena evaluation
+   - `previous_net.pth.tar`: Previous model for arena comparison
+2. Workers download models via SSH when needed
+3. Workers automatically check for new models based on training phase
 
 ### Game Collection
 
-1. Workers generate self-play games
-2. Games are batched (default: 100 games)
-3. Compressed and sent to main node
-4. Main node aggregates for training
+1. Workers generate games based on current status
+2. Self-play examples uploaded to `distributed/self_play/`
+3. Arena outcomes uploaded to `distributed/arena/`
+4. Main node polls directories and aggregates results
+5. Batch size controlled by `num_games_per_distributed_batch` setting
 
 ## Performance Optimization
 
@@ -171,8 +184,10 @@ distributed:
 
 Restart a specific worker:
 ```bash
-# On main node
-python distributed/ssh_connector.py --restart worker1
+# SSH into the worker machine
+# Kill the existing process if running
+# Then restart:
+python start_worker.py
 ```
 
 Remove a problematic worker:
@@ -241,25 +256,17 @@ Network usage: 45.6 MB/min
 
 ## Advanced Configuration
 
-### Custom Worker Scripts
+### Implementation Details
 
-Create specialized worker configurations:
-```python
-# custom_worker.py
-from training.worker import Worker
+**Key Classes:**
+- `Overseer` (training/overseer.py:14): Main node coordinator
+- `Worker` (training/worker.py): Worker node implementation  
+- `SSHConnector` (distributed/ssh_connector.py:12): Handles file transfers
+- `StatusManager` (distributed/status_manager.py:15): Manages training phase status
 
-class CustomWorker(Worker):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Custom initialization
-```
+**Training Phases:**
+1. **Self-Play Phase**: Workers generate training games
+2. **Neural Net Training**: Main node trains new model (workers idle)
+3. **Arena Phase**: Workers evaluate new vs previous model
 
-### Dynamic Worker Addition
-
-Add workers during training:
-```python
-from distributed.ssh_connector import SSHConnector
-
-connector = SSHConnector()
-connector.add_worker("new_worker.com", "username")
-```
+The main node cycles through these phases automatically for each iteration.
