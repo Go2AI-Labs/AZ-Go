@@ -21,11 +21,9 @@ AZ-Go integrates with KataGo for professional-level game analysis and model eval
 brew install katago  # macOS
 # or
 sudo apt install katago  # Ubuntu
-
-# Configure KataGo for AZ-Go
-cd katago/
-./configure_katago.sh
 ```
+
+Note: KataGo must be configured manually with appropriate paths and parameters.
 
 ### Running Analysis
 
@@ -38,10 +36,11 @@ Compare model moves with KataGo:
 ```python
 from katago.katago_wrapper import KataGoWrapper
 
-analyzer = KataGoWrapper()
-results = analyzer.analyze_position(board_state)
-print(f"Best move: {results['best_move']}")
-print(f"Win rate: {results['win_rate']:.2%}")
+# Initialize with KataGo command
+analyzer = KataGoWrapper("katago analysis -config your_config.cfg")
+# Query positions with move history
+response = analyzer.query(moves=["C4", "D4", "E5"])
+print(f"Analysis: {response}")
 ```
 
 ## Performance Metrics
@@ -63,230 +62,128 @@ The system tracks three main graphs during training:
    - Blue line at 0.54 indicates acceptance threshold
    - Models above threshold become new best model
 
-Monitor these metrics during training:
+The training system automatically generates graphs during training. After each iteration, three graphs are saved to `logs/graphs/`:
 
-```python
-# View training graphs
-python logger/graph_logger.py --metrics all
+- **V-Loss Graph**: Value head loss over iterations
+- **P-Loss Graph**: Policy head loss over iterations  
+- **Win Rate Graph**: Arena performance against previous model
 
-# Specific metrics
-python logger/graph_logger.py --metrics loss,elo,win_rate
-```
-
-Available metrics:
-- **Loss**: Policy and value loss over iterations
-- **ELO Rating**: Model strength progression
-- **Win Rate**: Performance against previous versions
-- **MCTS Statistics**: Visit counts, Q-values
+Graphs are automatically updated and saved as PNG files with timestamps.
 
 ### Model Strength Evaluation
 
-#### ELO Rating System
+#### Arena System
 
-Track model improvements:
+The training process includes an automatic arena evaluation:
 ```python
 from training.arena import Arena
 
-arena = Arena(model1, model2)
-results = arena.play_games(num_games=100)
-elo_diff = arena.calculate_elo_difference(results)
+# Arena is used internally during training
+# It plays games between current and previous models
+# Models are accepted if win rate > acceptance_threshold (default: 0.54)
 ```
 
 #### Game Analysis
 
-Analyze model playing patterns:
-```bash
-# Generate analysis report
-python analysis/generate_report.py --model iteration_50
+Game records from arena matches are saved as SGF files in `logs/arena_game_history/`. These can be analyzed with standard Go software or the debug tools:
 
-# Output includes:
-# - Opening preferences
-# - Common patterns
-# - Weakness analysis
-# - Style characteristics
+```bash
+# Debug arena games
+python debug/debug_arena.py
+
+# Debug self-play games
+python debug/debug_self_play.py
 ```
 
 ## Visualization Tools
 
 ### Board Position Heatmaps
 
-Visualize model predictions:
+Visualize board positions and moves:
 ```python
-from gtp.heatmap_generator import HeatmapGenerator
+from gtp.heatmap_generator import MapGenerator
 
-generator = HeatmapGenerator(model)
-heatmap = generator.generate_policy_heatmap(position)
-heatmap.save("analysis/policy_heatmap.png")
+# Create heatmap generator
+generator = MapGenerator(square_size=97, line_width=5)
+
+# Generate board visualization
+board_image = generator.generate_game_board(board, last_move)
+# Also supports MCTS count and policy probability visualizations
 ```
 
-### Move Probability Distributions
+### Neural Network Predictions
+
+The neural network provides both policy (move probabilities) and value (win probability) outputs:
 
 ```python
-# Show top move candidates
-probabilities = model.predict(position)
-top_moves = get_top_k_moves(probabilities, k=5)
+from neural_network.neural_net_wrapper import NeuralNetWrapper
 
-for move, prob in top_moves:
-    print(f"{move}: {prob:.2%}")
-```
+# Get predictions from the model
+wrapper = NeuralNetWrapper(game)
+wrapper.load_checkpoint(folder="logs/checkpoints", filename="best.pth.tar")
+pi, v = wrapper.predict(board)
 
-### Value Network Analysis
-
-Understand position evaluation:
-```python
-value = model.evaluate_position(position)
-print(f"Win probability: {value:.2%}")
-
-# Track value changes through game
-values = analyze_game_values("game.sgf")
-plot_value_graph(values)
+# pi: move probability distribution
+# v: expected game outcome (-1 to 1)
 ```
 
 ## Debugging Tools
 
-### MCTS Tree Visualization
+The codebase includes several debugging utilities:
 
-Examine search behavior:
-```python
-from debug.debug_mcts import MCTSDebugger
-
-debugger = MCTSDebugger()
-tree_info = debugger.analyze_tree(mcts, position)
-debugger.visualize_tree(tree_info, "mcts_tree.png")
-```
-
-### Neural Network Inspection
-
-Analyze network internals:
-```python
-# Feature visualization
-from neural_network.visualizer import NetworkVisualizer
-
-viz = NetworkVisualizer(model)
-features = viz.extract_conv_features(layer=5)
-viz.plot_features(features)
-
-# Activation patterns
-activations = viz.get_activations(position)
-viz.analyze_patterns(activations)
-```
-
-## Comparative Analysis
-
-### Model vs Model
-
-Compare different training iterations:
-```bash
-python analysis/compare_models.py \
-    --model1 iteration_30 \
-    --model2 iteration_50 \
-    --games 1000
-```
-
-Output includes:
-- Head-to-head win rate
-- Move agreement percentage
-- Time per move comparison
-- Strategic differences
-
-### Model vs Human
-
-Analyze games against human players:
-```python
-from analysis.human_comparison import HumanAnalyzer
-
-analyzer = HumanAnalyzer()
-report = analyzer.analyze_game("human_vs_ai.sgf")
-print(report.summary())
-```
-
-## Statistical Analysis
-
-### Move Prediction Accuracy
-
-Evaluate on professional games:
-```bash
-python analysis/test_accuracy.py \
-    --model iteration_50 \
-    --test_set pro_games/ \
-    --top_k 1,3,5
-```
-
-### Positional Understanding
-
-Test specific Go concepts:
-```python
-# Ladder reading
-ladder_accuracy = test_ladder_reading(model)
-
-# Life and death
-tsumego_score = test_tsumego(model, "problems/")
-
-# Territory evaluation
-territory_mae = test_territory_counting(model)
-```
-
-## Performance Profiling
-
-### Speed Analysis
+### Available Debug Scripts
 
 ```bash
-# Profile MCTS performance
-python -m cProfile -o profile.stats mcts_benchmark.py
-python analysis/analyze_profile.py profile.stats
+# Debug arena matches between models
+python debug/debug_arena.py
+
+# Debug self-play game generation
+python debug/debug_self_play.py
+
+# Debug distributed worker behavior
+python debug/debug_worker.py
+
+# Debug game scoring
+python debug/debug_scoring.py
 ```
 
-Key metrics:
-- Simulations per second
-- Neural network inference time
-- Tree expansion rate
-- Memory usage
+These tools help diagnose issues during training and game generation.
 
-### GPU Utilization
+## Model Comparison
 
-Monitor training efficiency:
-```python
-from logger.gpu_monitor import GPUMonitor
+During training, models are automatically compared through the arena system. Each iteration plays games between the new and previous model to determine if the new model should be accepted.
 
-monitor = GPUMonitor()
-stats = monitor.get_training_stats()
-print(f"GPU Utilization: {stats['gpu_util']}%")
-print(f"Memory Used: {stats['memory_used']}GB")
-```
+For manual comparison, you can:
+1. Load different model checkpoints
+2. Play games between them using the Arena class
+3. Analyze the resulting SGF files
 
-## Export and Integration
+## Model Evaluation
 
-### Model Export
+While comprehensive analysis tools are not included, you can evaluate models by:
 
-Export for different platforms:
-```bash
-# ONNX format
-python export/to_onnx.py --model iteration_50
+1. **Training Metrics**: Monitor loss graphs and win rates
+2. **Arena Performance**: Check acceptance rates against previous models
+3. **Manual Testing**: Use the GTP interface to play against the model
+4. **KataGo Comparison**: Use the KataGo integration to compare move choices
 
-# TensorRT optimization
-python export/to_tensorrt.py --model iteration_50
+## Performance Monitoring
 
-# Mobile deployment
-python export/to_mobile.py --model iteration_50 --quantize
-```
+While dedicated profiling tools are not included, you can monitor performance through:
 
-### Analysis Reports
+1. **Training Logs**: Check iteration times and game generation rates
+2. **System Monitoring**: Use standard tools like `nvidia-smi` for GPU usage
+3. **Debug Output**: Enable `debug_mode: true` in config.yaml for detailed timing
 
-Generate comprehensive reports:
-```bash
-# Full analysis report
-python analysis/full_report.py \
-    --model iteration_50 \
-    --output report.pdf \
-    --include all
-```
+## Model Storage and Access
 
-Report sections:
-1. Training history
-2. Performance metrics
-3. Game analysis
-4. Strength evaluation
-5. Recommendations
+Trained models are saved in `logs/checkpoints/`:
+- `best.pth.tar`: Current best model
+- `current_net.pth.tar`: Latest trained model
+- `previous_net.pth.tar`: Previous iteration model
+- `checkpoint_X.pth.tar`: Specific iteration checkpoints
+
+Models can be loaded for analysis or deployment using the NeuralNetWrapper class.
 
 ## Best Practices
 
@@ -296,27 +193,22 @@ Report sections:
 4. **Version Control**: Track analysis results with model versions
 5. **Automated Testing**: Set up CI/CD for model evaluation
 
-## Common Analysis Patterns
+## Practical Analysis Workflow
 
-### Identifying Weaknesses
+1. **Monitor Training Progress**:
+   - Check loss graphs in `logs/graphs/`
+   - Review win rates for model improvement
+   - Examine arena game records
 
-```python
-# Find model blind spots
-weaknesses = analyze_failure_patterns(model, test_games)
-for pattern in weaknesses:
-    print(f"Weakness: {pattern.description}")
-    print(f"Frequency: {pattern.frequency}")
-    print(f"Suggested training: {pattern.remedy}")
-```
+2. **Test Model Strength**:
+   - Use GTP interface to play test games
+   - Compare with KataGo analysis
+   - Review self-play game quality
 
-### Style Classification
-
-```python
-# Determine playing style
-style = classify_playing_style(model)
-print(f"Style: {style.type}")  # Aggressive, Territorial, Balanced
-print(f"Characteristics: {style.traits}")
-```
+3. **Debug Issues**:
+   - Use debug scripts for specific problems
+   - Check training logs for errors
+   - Verify game generation rates
 
 ## Model Explainability
 
