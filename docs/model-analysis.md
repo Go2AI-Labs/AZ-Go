@@ -48,7 +48,22 @@ print(f"Win rate: {results['win_rate']:.2%}")
 
 ### Training Progress Visualization
 
-Monitor key metrics during training:
+The system tracks three main graphs during training:
+
+1. **V-Loss Graph**: Loss for the value head predictions
+   - Tracks how well the network predicts game outcomes
+   - Lower loss indicates better position evaluation
+
+2. **P-Loss Graph**: Loss for the policy head predictions
+   - Tracks how well the network predicts move probabilities
+   - Lower loss indicates better move selection
+
+3. **Win-Rate Graph**: Arena performance over iterations
+   - Shows proportion of wins against previous best model
+   - Blue line at 0.54 indicates acceptance threshold
+   - Models above threshold become new best model
+
+Monitor these metrics during training:
 
 ```python
 # View training graphs
@@ -302,3 +317,51 @@ style = classify_playing_style(model)
 print(f"Style: {style.type}")  # Aggressive, Territorial, Balanced
 print(f"Characteristics: {style.traits}")
 ```
+
+## Model Explainability
+
+### Grad-CAM Integration
+
+The system supports Gradient-weighted Class Activation Mapping (Grad-CAM) for understanding neural network decisions. Grad-CAM helps visualize which board positions are most important for the neural network's move selection.
+
+**How it works**:
+- Highlights board positions important for move selection
+- Visualizes which stones/patterns influence decisions
+- Shows "unique" features for recognizing good moves
+
+**Implementation**:
+- Available through separate repository: https://github.com/ductoanng/AZ-Go-Grad-CAM
+- Follow the steps in `AZ-Go-Grad-CAM.ipynb` for detailed analysis
+
+**Use cases**:
+- Understanding why the model chooses specific moves
+- Identifying which board patterns the model has learned
+- Debugging unexpected model behavior
+- Teaching tool for understanding Go strategy
+
+## Model Fine-Tuning
+
+Model behavior can be adjusted through `configs/config.yaml`:
+
+### Network Architecture Parameters
+- Layer dimensions
+- Residual block count
+- Activation functions
+
+### Training Hyperparameters
+- Learning rate schedules
+- Batch size
+- Regularization strength
+- Loss function weights
+
+### MCTS Exploration Settings
+- C_PUCT value for exploration/exploitation balance
+- Dirichlet noise parameters
+- Temperature settings for move selection
+
+### Distributed Training Configuration
+- Worker count
+- Game generation rate
+- Model distribution frequency
+
+All configuration changes affect model behavior and training dynamics. See the [Training Process](training) documentation for detailed parameter descriptions.

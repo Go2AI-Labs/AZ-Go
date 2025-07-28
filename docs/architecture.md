@@ -65,11 +65,6 @@ This is effectively an image classification network where:
 - Input "channels" are board states instead of RGB
 - Output "classes" are possible next moves instead of object categories
 
-**Training Parameters**:
-- **Optimizer**: Adam
-- **Batch Size**: 2048
-- **Initial Learning Rate**: 0.0001
-- **Epochs**: 10 per training iteration
 
 ### 4. MCTS (`mcts.py`)
 
@@ -104,10 +99,6 @@ MCTS is a heuristic search algorithm that combines tree search with random sampl
 - Output: Vector containing visit counts for each node 1 level down from root
 - Next move: Index with maximum visit count corresponds to board intersection
 
-**Randomness for Training**:
-- **Dirichlet noise**: Applied to probability distribution at each tree node
-- **Temperature parameter**: Random moves for first n moves in game
-- Ensures wider variety of training samples and prevents overfitting
 
 ### 5. Game Engine (`go/go_game.py`)
 
@@ -118,40 +109,16 @@ Go game implementation:
 - Territory scoring
 - SGF export
 
-## Training Process
+## Training Pipeline Overview
 
-The training loop consists of three main phases:
+The system implements an iterative self-improvement loop:
 
-### 1. Data Generation Phase (Self-Play)
-- **Most time-consuming phase** - generates training data through self-play
-- **Reinforcement learning approach** - model starts with zero knowledge except Go rules
-- **Initial model**: Randomly initialized weights
-- **Sample collection**: 50,000 individual samples per iteration
-- **Training set**: Most recent 4 iterations of samples (iterations 1, 2, 3 contain 50k, 100k, 150k samples respectively)
+1. **Self-Play Generation** → Collect training data
+2. **Neural Network Training** → Improve model
+3. **Arena Evaluation** → Validate improvements
+4. **Model Update** → Deploy better models
 
-**Training Example Components**:
-- **Input**: 18x7x7 board state stack
-- **Target 1**: Length-49 vector with 1 at index of most visited MCTS move
-- **Target 2**: Game result (-1 for loss, 1 for win)
-
-**Randomness Added**:
-- Temperature parameter for random moves in first n moves
-- Dirichlet noise during MCTS on probability distributions
-- Prevents overfitting and ensures game variety
-
-### 2. Neural Network Training Phase
-- Standard neural network training process
-- Uses collected samples from data generation
-- Parameters listed in Neural Network section above
-
-### 3. Model Evaluation Phase (Arena)
-- **Games played**: 50 games between new model vs previous best
-- **Acceptance threshold**: New model must win ≥54% (27/50 games)
-- **Failure case**: If threshold not met, new model discarded, previous best retained
-- **Randomness**: Board states rotated by 90° random times before NN input
-  - Output transformed back to match original orientation
-  - All Go board rotations are equivalent
-  - Adds variation without modifying model output
+For detailed training process information, see [Training Process](training).
 
 ## Custom Communication Protocol
 
@@ -176,27 +143,10 @@ Workers communicate with overseer across nodes via:
 - **Best Model Tracking**: Automatic selection
 - **Rollback Support**: Previous model recovery
 
-## Model Analysis
-
-### Training Metrics and Visualization
-
-The system tracks three main graphs during training:
-
-1. **V-Loss Graph**: Loss for the value head predictions
-   - Tracks how well the network predicts game outcomes
-   - Lower loss indicates better position evaluation
-
-2. **P-Loss Graph**: Loss for the policy head predictions
-   - Tracks how well the network predicts move probabilities
-   - Lower loss indicates better move selection
-
-3. **Win-Rate Graph**: Arena performance over iterations
-   - Shows proportion of wins against previous best model
-   - Blue line at 0.54 indicates acceptance threshold
-   - Models above threshold become new best model
 
 ## Next Steps
 
 - [Training Process](training) - Detailed training pipeline
 - [Usage Guide](usage) - Running the system
-- [Model Archives](https://notion.so/ML@TCU/Model-Archives) - Historical model data and graphs
+- [Model Analysis](model-analysis) - Analyze and understand models
+- [Codebase Structure](codebase-structure) - Navigate the source code
