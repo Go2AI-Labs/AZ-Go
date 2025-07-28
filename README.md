@@ -1,7 +1,9 @@
 
-# AZ-Go: AlphaZero for Go
+# AZ-Go: A Custom AlphaGo Zero Implementation for Compact Board Configurations
 
-A distributed AlphaZero implementation specifically designed for training Go models. This project implements the AlphaGo Zero algorithm with distributed training capabilities, neural network management, and comprehensive logging.
+A distributed AlphaGoZero implementation specifically designed for training Go models. This project implements the AlphaGo Zero algorithm with distributed training capabilities, neural network management, and comprehensive logging.
+
+📚 **[Read the Documentation](https://go2ai-labs.github.io/AZ-Go/)**
 
 ## Features
 
