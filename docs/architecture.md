@@ -12,21 +12,6 @@ AZ-Go implements the AlphaZero algorithm with a distributed training architectur
 
 ## System Components
 
-### Core Components
-
-```
-┌─────────────────┐     ┌──────────────┐     ┌─────────────┐
-│    Overseer     │────▶│   Workers    │────▶│    Arena    │
-│  (Coordinator)  │     │ (Self-Play)  │     │ (Evaluation)│
-└────────┬────────┘     └──────┬───────┘     └──────┬──────┘
-         │                     │                     │
-         ▼                     ▼                     ▼
-┌─────────────────┐     ┌──────────────┐     ┌─────────────┐
-│  Neural Network │     │     MCTS     │     │  Game Logic │
-│   (ResNet-18)   │     │ (Tree Search)│     │  (Go Rules) │
-└─────────────────┘     └──────────────┘     └─────────────┘
-```
-
 ### 1. Overseer (`training/overseer.py`)
 
 The central coordinator that:
@@ -168,55 +153,18 @@ The training loop consists of three main phases:
   - All Go board rotations are equivalent
   - Adds variation without modifying model output
 
-## Data Flow
+## Custom Communication Protocol
 
-### Training Pipeline
-
-1. **Self-Play Generation**
-   ```
-   Worker → MCTS → Neural Net → Game States → Training Examples
-   ```
-
-2. **Neural Network Training**
-   ```
-   Training Examples → Overseer → Adam Optimization → New Model
-   ```
-
-3. **Model Evaluation**
-   ```
-   New Model vs Best Model → Arena (50 games) → Win Rate ≥54% → Model Selection
-   ```
-
-### Communication Protocol
-
-Workers communicate with overseer via:
+Workers communicate with overseer across nodes via:
 - **Model Distribution**: Pickled PyTorch models
 - **Game Collection**: Serialized training examples
 - **Status Updates**: JSON progress reports
-
-## File Organization
-
-```
-lifecycle/                  # Model and data lifecycle management
-├── lifecycle_manager.py    # Coordinates all lifecycle operations
-├── neural_net_manager.py   # Model versioning and storage
-└── train_example_manager.py # Training data management
-
-distributed/               # Distributed training infrastructure
-├── ssh_connector.py      # SSH connection handling
-└── status_manager.py     # Worker status tracking
-
-logger/                    # Logging and visualization
-├── graph_logger.py       # Training metrics plotting
-└── gtp_logger.py        # Game protocol logging
-```
 
 ## Key Design Decisions
 
 ### 1. Distributed Architecture
 - **Scalability**: Add workers dynamically
 - **Fault Tolerance**: Workers can disconnect/reconnect
-- **Load Balancing**: Automatic work distribution
 
 ### 2. Memory Management
 - **Example Buffer**: Fixed-size training history
@@ -227,40 +175,6 @@ logger/                    # Logging and visualization
 - **Checkpointing**: Regular model saves
 - **Best Model Tracking**: Automatic selection
 - **Rollback Support**: Previous model recovery
-
-## Performance Optimizations
-
-### Neural Network
-- Batch inference for multiple MCTS simulations
-- FP16 training support
-- Gradient accumulation for large batches
-
-### MCTS
-- Virtual loss for parallel simulations
-- Tree reuse between moves
-- Cached neural network evaluations
-
-### Distributed Training
-- Asynchronous game generation
-- Compressed model transfer
-- Parallel worker execution
-
-## Extension Points
-
-### Adding New Features
-
-1. **New Network Architectures**: Implement in `neural_network/`
-2. **Alternative Search**: Replace MCTS in game generation
-3. **Different Games**: Implement game interface in `go/`
-4. **Analysis Tools**: Add to `katago/` or `gtp/`
-
-### Configuration Options
-
-All major parameters configurable via `configs/config.yaml`:
-- Network architecture
-- Training hyperparameters
-- MCTS settings
-- Distributed configuration
 
 ## Model Analysis
 
@@ -280,21 +194,6 @@ The system tracks three main graphs during training:
    - Shows proportion of wins against previous best model
    - Blue line at 0.54 indicates acceptance threshold
    - Models above threshold become new best model
-
-### Model Explainability
-
-**Grad-CAM Integration**: The system supports Gradient-weighted Class Activation Mapping (Grad-CAM) for understanding neural network decisions:
-- Highlights board positions important for move selection
-- Visualizes which stones/patterns influence decisions
-- Available through separate repository: https://github.com/ductoanng/AZ-Go-Grad-CAM
-
-### Fine-Tuning
-
-Model behavior can be adjusted through `configs/config.yaml`:
-- Network architecture parameters
-- Training hyperparameters
-- MCTS exploration settings
-- Distributed training configuration
 
 ## Next Steps
 
