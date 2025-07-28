@@ -28,6 +28,7 @@ AZ-Go/
 ├── pytorch_classification/  # Additional ML utilities
 ├── training/            # Training pipeline components
 ├── utils/               # General utilities
+├── definitions.py       # Common path definitions
 ├── mcts.py              # Monte Carlo Tree Search implementation
 ├── start_main.py        # Main training orchestrator
 └── start_worker.py      # Distributed worker process
@@ -72,10 +73,17 @@ Components for the self-play training loop:
 - `arena_manager.py` - Manages arena competitions
 - `worker.py` - Distributed worker implementation
 
+### GTP Interface (`gtp/`)
+Go Text Protocol implementation for GUI integration:
+- `engine.py` - Main GTP engine interface
+- `engine_mcts.py` - MCTS implementation for GTP engine
+- `heatmap_generator.py` - Visual heatmap generation for move analysis
+
 ### Distributed System (`distributed/`)
 Infrastructure for distributed training:
 - `ssh_connector.py` - SSH connection management
 - `status_manager.py` - Worker status tracking
+- `status.txt` - Worker status file
 
 ### Engine Interface (`engine/`)
 Go engine implementation for playing against the model:
@@ -84,12 +92,15 @@ Go engine implementation for playing against the model:
 - `engine_legacy.py` - Legacy engine implementation
 - `engine_config.yaml` - Engine configuration
 - `build_engine.sh` - Engine build script (PyInstaller)
+- `README.md` - Engine documentation
 
 ### Analysis Tools (`katago/`)
 Integration with KataGo for move analysis:
 - `katago_wrapper.py` - KataGo interface wrapper
 - `katago_parameters.py` - KataGo configuration
 - `run_katago.py` - Analysis runner (hardcoded to analyze sgf/figure_c1.sgf)
+- `query_example.json` - Example query format for KataGo
+- `response_example.json` - Example response format from KataGo
 - `sgf/` - Sample game files for analysis
 - `results/` - Analysis results storage
 
@@ -123,6 +134,7 @@ All configuration is managed through `configs/config.yaml`, which controls:
 | File | Purpose |
 |------|---------|
 | `mcts.py` | MCTS algorithm implementation |
+| `definitions.py` | Common path definitions and configurations |
 | `go/go_logic.py` | Go game rules |
 | `neural_network/go_alphanet.py` | Neural network architecture |
 | `training/coach.py` | Training orchestration |
@@ -130,6 +142,7 @@ All configuration is managed through `configs/config.yaml`, which controls:
 | `distributed/ssh_connector.py` | Remote worker management |
 | `lifecycle/neural_net_manager.py` | Model versioning |
 | `logger/graph_logger.py` | Training visualization |
+| `utils/config_handler.py` | Configuration file management |
 
 ## Development Guidelines
 
