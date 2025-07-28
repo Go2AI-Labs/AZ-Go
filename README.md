@@ -1,50 +1,85 @@
 
-# Alpha Zero General (any game, any framework!) with go game implemented
+# AZ-Go: AlphaZero for Go
 
-A simplified, highly flexible, commented and (hopefully) easy to understand implementation of self-play based reinforcement learning based on the AlphaGo Zero paper (Silver et al). It is designed to be easy to adopt for any two-player turn-based adversarial game and any deep learning framework of your choice. A sample implementation has been provided for the game of Othello in PyTorch, Keras and TensorFlow. An accompanying tutorial can be found [here](http://web.stanford.edu/~surag/posts/alphazero.html). We also have implementations for GoBang and TicTacToe.
+A distributed AlphaZero implementation specifically designed for training Go models. This project implements the AlphaGo Zero algorithm with distributed training capabilities, neural network management, and comprehensive logging.
 
-To use a game of your choice, subclass the classes in ```Game.py``` and ```NeuralNet.py``` and implement their functions. Example implementations for Go can be found in ```go/GoGame.py``` and ```go/{pytorch,keras,tensorflow}/NNet.py```.
+## Features
 
-```GoCoach.py``` contains the core training loop and ```GoMCTS.py``` performs the Monte Carlo Tree Search. The parameters for the self-play can be specified in ```main.py```. Additional neural network parameters are in ```go/{pytorch,keras,tensorflow}/NNet.py``` (cuda flag, batch size, epochs, learning rate etc.).
+- **Go Game Implementation**: Complete Go game logic with proper rule handling on configurable board sizes (default 7x7)
+- **Distributed Training**: Support for training across multiple worker nodes with SSH connectivity
+- **Neural Network Architecture**: ResNet and CNN architectures with configurable parameters
+- **MCTS Integration**: Monte Carlo Tree Search with configurable simulation counts and exploration parameters
+- **KataGo Integration**: Interface with KataGo engine for analysis and evaluation
+- **Comprehensive Logging**: Training progress, game history, and performance metrics
+- **GTP Protocol Support**: Integration with Go Text Protocol for engine communication
 
-To start training a model for GoGame:
+## Quick Start
+
+### Main Training (Distributed)
+Start the main overseer node:
 ```bash
-python main.py
+python start_main.py
 ```
 
-Choose your framework and game in ```main.py```.
-
-To display the board status of training process: set `display:True` in `main.py` file.
-
-To start pitting with a player for GoGame:
+### Worker Training
+Start worker nodes for distributed training:
 ```bash
-python pit.py
+python start_worker.py
 ```
 
-### Experiments
-We trained a PyTorch model for 6x6 Othello (~80 iterations, 100 episodes per iteration and 25 MCTS simulations per turn). This took about 3 days on an NVIDIA Tesla K80. The pretrained model (PyTorch) can be found in ```pretrained_models/othello/pytorch/```. You can play a game against it using ```pit.py```. Below is the performance of the model against a random and a greedy baseline with the number of iterations.
-![alt tag](https://github.com/suragnair/alpha-zero-general/raw/master/pretrained_models/6x6.png)
+## Configuration
 
-A concise description of our algorithm can be found [here](https://github.com/suragnair/alpha-zero-general/raw/master/pretrained_models/writeup.pdf).
+All training parameters are configured in `configs/config.yaml`:
 
-### Contributing
-While the current code is fairly functional, we could benefit from the following contributions:
-* Game logic files for more games that follow the specifications in ```Game.py```, along with their neural networks
-* Neural networks in other frameworks
-* Pre-trained models for different game configurations
-* An asynchronous version of the code- parallel processes for self-play, neural net training and model comparison. 
-* Asynchronous MCTS as described in the paper
+- **Board Size**: 7x7 Go board (configurable)
+- **Training**: 500 iterations with 5000 self-play episodes per iteration
+- **MCTS**: 500 simulations with C_PUCT of 1.0
+- **Neural Network**: ResNet architecture with 128 channels, SGD optimizer
+- **Distributed**: Support for multiple parallel workers
 
-### Contributors and Credits
-* [Shantanu Thakoor](https://github.com/ShantanuThakoor) and [Megha Jhunjhunwala](https://github.com/jjw-megha) helped with core design and implementation.
-* [Shantanu Kumar](https://github.com/SourKream) contributed TensorFlow and Keras models for Othello.
-* [Evgeny Tyurin](https://github.com/evg-tyurin) contributed rules and a trained model for TicTacToe.
-* [MBoss](https://github.com/1424667164) contributed rules and a model for GoBang.
-* [TianyuLei & LingxiaoGong](https://github.com/ambbber) contributed rules and a model for GoGame.
-* [ZhongyaoChu](https://github.com/edwardchor) contributed ResNet implementation and improved MCTS for GoGame.
+## Project Structure
 
-Thanks to [pytorch-classification](https://github.com/bearpaw/pytorch-classification) and [progress](https://github.com/verigak/progress).
+```
+├── go/                     # Go game implementation
+│   ├── go_game.py         # Main game interface
+│   ├── go_logic.py        # Go rules and board logic
+│   └── game.py            # Abstract game interface
+├── training/              # Training infrastructure
+│   ├── overseer.py        # Main training coordinator
+│   ├── coach.py           # Training loop management
+│   ├── arena.py           # Model evaluation
+│   └── worker.py          # Distributed worker nodes
+├── neural_network/        # Neural network implementations
+│   ├── go_alphanet.py     # AlphaZero network architecture
+│   └── neural_net.py      # Network interface
+├── mcts.py                # Monte Carlo Tree Search
+├── distributed/           # Distributed training support
+├── katago/               # KataGo integration
+├── gtp/                  # Go Text Protocol support
+├── engine/               # Game engine integration
+└── configs/              # Configuration files
+```
 
-#### For pitting with current trained model
-- Pytorch with CUDA support is required
-- If a required environment is not available, please contact zc1213@nyu.edu and request for a link on which online pitting experiecne is offered.
+## Training Process
+
+1. **Self-Play**: Workers generate training games using MCTS
+2. **Neural Network Training**: Overseer trains the network on collected games
+3. **Arena Evaluation**: New models compete against current best
+4. **Model Selection**: Better performing models are promoted
+
+## Logging and Analysis
+
+- **Checkpoints**: Model saves in `logs/checkpoints/`
+- **Training Examples**: Game data in `logs/train_examples/`
+- **Game History**: SGF files in `logs/arena_game_history/`
+- **Performance Graphs**: Training metrics in `logs/graphs/`
+- **KataGo Analysis**: Detailed game analysis in `katago/results/`
+
+## Requirements
+
+- Python 3.x
+- PyTorch
+- NumPy
+- PyYAML
+- SSH access for distributed training
+- KataGo binary (optional, for analysis)
