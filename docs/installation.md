@@ -81,13 +81,7 @@ learning_rate: 0.01
 
 ## Verify Installation
 
-Run the test suite:
-
-```bash
-python -m pytest tests/
-```
-
-Or run a quick self-play game:
+Run a quick self-play game:
 
 ```bash
 python debug/debug_self_play.py

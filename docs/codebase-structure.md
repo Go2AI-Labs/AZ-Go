@@ -14,8 +14,8 @@ This section provides a comprehensive overview of the AZ-Go codebase organizatio
 
 ```
 AZ-Go/
-├── configs/              # Configuration files
-├── distributed/          # Distributed training components
+├── configs/             # Configuration files
+├── distributed/         # Distributed training components
 ├── engine/              # Go engine implementation
 ├── go/                  # Core Go game logic
 ├── gtp/                 # Go Text Protocol interface
@@ -38,9 +38,9 @@ The fundamental Go game implementation:
 
 ### Neural Network (`neural_network/`)
 Deep learning models for position evaluation:
-- `go_alphanet.py` - Main AlphaZero network architecture
-- `neural_net_wrapper.py` - PyTorch model wrapper
 - `neural_net.py` - Base neural network interface
+- `neural_net_wrapper.py` - PyTorch model wrapper
+- `go_alphanet.py` - Main AlphaZero network architecture
 
 ### Monte Carlo Tree Search (`mcts.py`)
 The MCTS algorithm implementation for move selection, featuring:

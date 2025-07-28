@@ -21,28 +21,29 @@ python start_main.py
 # Worker nodes (on each worker)
 python start_worker.py
 
-# Single machine training
-python start_main.py --num-workers 0
+# Note: Both scripts take no command-line arguments.
+# Configuration is done through configs/config.yaml
 ```
 
 ### Play Against the Model
 
 ```bash
-# Interactive game
-python engine/run_engine.py --mode play
+# Interactive GTP engine
+python engine/run_engine.py       # Standard mode
+python engine/run_engine.py -cli  # With command prompt
 
-# GTP interface (for Go GUIs)
-python gtp/engine.py --model logs/checkpoints/best_model.pth.tar
+# GTP interface (for Go GUIs like Sabaki)
+python gtp/engine.py  # No command-line arguments supported
 ```
 
 ### Analyze Games
 
 ```bash
 # Analyze SGF file with KataGo
-python katago/run_katago.py --sgf game.sgf
+python katago/run_katago.py  # Analyzes sgf/figure_c1.sgf (hardcoded)
 
-# Generate heatmaps
-python gtp/heatmap_generator.py --position "B[dd];W[pp]"
+# Note: heatmap_generator.py is a module, not a standalone script
+# It's used internally by gtp/engine.py
 ```
 
 ## Command Line Options
@@ -50,31 +51,22 @@ python gtp/heatmap_generator.py --position "B[dd];W[pp]"
 ### Training Options
 
 ```bash
-python start_main.py [OPTIONS]
-
-Options:
-  --config PATH           Config file (default: configs/config.yaml)
-  --resume                Resume from last checkpoint
-  --iterations N          Number of training iterations
-  --episodes N            Self-play games per iteration
-  --workers N             Number of parallel workers
-  --no-arena             Skip arena evaluation
-  --save-all             Save all models (not just best)
+python start_main.py
+# No command-line options - all configuration through configs/config.yaml
 ```
 
 ### Play Options
 
 ```bash
-python engine/run_engine.py [OPTIONS]
-
-Options:
-  --model PATH           Model checkpoint to load
-  --mode MODE            'play' or 'analyze'
-  --mcts-sims N          MCTS simulations per move
-  --thinking-time S      Time limit per move (seconds)
-  --komi N               Komi value (default: 5.5)
-  --board-size N         Board size (default: 7)
+python engine/run_engine.py [-cli]
+# -cli: Show command prompt for input (optional)
 ```
+
+### Configuration
+
+All training and game parameters are configured through:
+- `configs/config.yaml` - Main configuration file
+- Model paths and parameters are set in the config files
 
 ## Configuration Files
 
@@ -136,36 +128,44 @@ tail -f logs/training.log
 ### 2. Resuming Training
 
 ```bash
-# Automatic resume from last checkpoint
-python start_main.py --resume
-
-# Resume from specific checkpoint
-python start_main.py --load-model logs/checkpoints/checkpoint_200.pth.tar
+# Training automatically resumes from last checkpoint
+# The overseer and workers handle checkpoint management internally
+python start_main.py
 ```
 
 ### 3. Running Tournaments
 
-```bash
-# Compare two models
-python training/arena.py \
-  --model1 logs/checkpoints/checkpoint_100.pth.tar \
-  --model2 logs/checkpoints/checkpoint_200.pth.tar \
-  --num-games 100
+```python
+# arena.py is a class, not a standalone script
+# To run tournaments, you would need to create a script like:
+
+from training.arena import Arena
+from training.coach import Coach
+from go.go_game import GoGame
+from utils.config_handler import ConfigHandler
+
+# Load models and create players
+# Then use Arena class to pit them against each other
 ```
 
 ### 4. Batch Analysis
 
 ```python
-# analyze_games.py
+# Example script for batch analysis
 from katago.katago_wrapper import KataGoWrapper
+from katago.katago_parameters import KATAGO_START_CMD
+from logger.gtp_logger import load_sgf
 import glob
 
-analyzer = KataGoWrapper()
-sgf_files = glob.glob("games/*.sgf")
+# KataGoWrapper requires the start command
+analyzer = KataGoWrapper(KATAGO_START_CMD)
 
+# Load and analyze SGF files
+sgf_files = glob.glob("games/*.sgf")
 for sgf in sgf_files:
-    result = analyzer.analyze_game(sgf)
-    print(f"{sgf}: {result['summary']}")
+    moves = load_sgf(sgf)
+    # Convert moves to actions and use query() method
+    # See katago/run_katago.py for example usage
 ```
 
 ## Integration with Go GUIs
@@ -183,7 +183,7 @@ for sgf in sgf_files:
 ```bash
 # Create wrapper script
 echo '#!/bin/bash
-python /path/to/gtp/engine.py "$@"' > azgo-gtp.sh
+python /path/to/gtp/engine.py' > azgo-gtp.sh
 chmod +x azgo-gtp.sh
 
 # Add to Lizzie engines

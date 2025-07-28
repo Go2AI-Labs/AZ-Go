@@ -3,7 +3,6 @@
 # Go Game configuration
 board_size: 7                 # N x N board for Go Game
 
-# TODO: Remove configuration parameters that are no longer used
 
 # time parameters
 num_iterations: 500            # number of total iterations (Episodes + NN Training + Arena) to play
@@ -49,5 +48,3 @@ game_history_directory: logs/arena_game_history   # directory where arena SGF fi
 graph_directory: logs/graphs                      # directory where loss and win rate graphs will be saved
 train_logs_directory: logs/train_logs             # directory where detailed loss data (CSV) will be saved
 
-# misc parameters
-ram_cap: 120                  # max amount of RAM for program to use in GB before truncating train_example_history

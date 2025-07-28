@@ -12,7 +12,7 @@ A distributed AlphaZero implementation specifically designed for training Go mod
 **Authors:** Toan Nguyen, Blake Good, Harrison Leath  
 **Date:** May 5, 2025
 
-## 📚 Project Resources
+## Project Resources
 
 <div style="background-color: #f0f8ff; border: 2px solid #1e90ff; border-radius: 8px; padding: 20px; margin: 20px 0;">
   <h3 style="margin-top: 0; color: #1e90ff;">🔗 Notion Documentation & Model Archives</h3>
