@@ -1,6 +1,6 @@
 title: AZ-Go
 description: AlphaZero implementation for 7x7 Go with ResNet-18, Monte Carlo Tree Search, and distributed self-play training
-theme: just-the-docs
+remote_theme: just-the-docs/just-the-docs@v0.10.1
 show_downloads: true
 google_analytics:
 
