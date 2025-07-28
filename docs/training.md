@@ -1,6 +1,8 @@
 ---
 layout: default
-title: Training
+title: Training Process
+parent: Training & Deployment
+nav_order: 1
 permalink: /training
 ---
 
@@ -26,12 +28,15 @@ The AZ-Go training pipeline implements the AlphaZero algorithm with distributed 
 
 ### Overview
 
-The model starts with zero knowledge other than Go rules. Beginning with randomly initialized weights, we generate training samples through self-play games.
+The most time-consuming phase of training. The model starts with zero knowledge other than Go rules. Beginning with randomly initialized weights, we generate training samples through self-play games using a reinforcement learning approach.
 
 ### Training Data Structure
 
 Each training example consists of:
 1. **Board State**: 18x7x7 stack representing current position
+   - Layers 1-16: Past 16 board states from each player's perspective
+   - Layer 17: Current player indicator (all 1s for black, all -1s for white)
+   - Layer 18: Sensibility layer - encodes territory control
 2. **Policy Target**: Length-49 vector with 1 at most-visited MCTS move
 3. **Value Target**: Game result (-1 for loss, 1 for win)
 
@@ -47,11 +52,12 @@ Each training example consists of:
 ### Randomness for Exploration
 
 **Temperature-based Selection**:
-- First n moves: Select randomly (configurable temperature)
+- First n moves: Select randomly (configurable temperature parameter)
 - Remaining moves: More deterministic selection
+- Reduces overfitting and ensures game variety
 
 **Dirichlet Noise**:
-- Applied to probability distribution at tree root
+- Applied to probability distribution at each tree node during MCTS
 - Ensures variety in training games
 - Prevents learning repetitive patterns
 
@@ -96,13 +102,16 @@ Previous best model vs newly trained model:
 - **Total Games**: 50 matches
 - **Acceptance Threshold**: 54% win rate (27/50 games)
 - **Fair Comparison**: Same MCTS parameters for both models
+- **Failure Case**: If threshold not met, new model discarded, previous best retained
 
 ### Arena Randomness
 
-To increase game variety without affecting model output:
-- **Board Rotation**: Random 90° rotations before neural network evaluation
-- **Output Transformation**: Rotate predictions back to match original orientation
-- **Equivalence**: All rotations are strategically equivalent in Go
+To add variation without modifying model output:
+- Board states rotated by 90° random number of times before NN input
+- Output transformed back to match original orientation
+- All Go board rotations are equivalent
+- Ensures diverse game positions during evaluation
+
 
 ### Evaluation Metrics
 

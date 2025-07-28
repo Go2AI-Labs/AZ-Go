@@ -1,0 +1,35 @@
+# Main navigation structure
+nav:
+  - title: "Getting Started"
+    children:
+      - title: "Home"
+        url: /
+      - title: "Installation"
+        url: /installation
+      - title: "Usage Guide"
+        url: /usage
+  
+  - title: "Technical Documentation"
+    children:
+      - title: "Codebase Structure"
+        url: /codebase-structure
+      - title: "Architecture"
+        url: /architecture
+  
+  - title: "Training & Deployment"
+    children:
+      - title: "Training Process"
+        url: /training
+      - title: "Distributed Training"
+        url: /distributed-training
+  
+  - title: "Analysis & Research"
+    children:
+      - title: "Model Analysis"
+        url: /model-analysis
+      - title: "Analysis Tools"
+        url: /analysis
+      - title: "Model Archives"
+        url: /model-archives
+      - title: "Related Papers"
+        url: /related-papers

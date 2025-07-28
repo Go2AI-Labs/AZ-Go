@@ -1,7 +1,7 @@
 import os
 import sys
 
-# TODO: Only used by the engine_legacy.py file. Update engine to remove this dependency
+# Used by gtp/engine.py for finding model paths
 def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS

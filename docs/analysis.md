@@ -1,12 +1,14 @@
 ---
 layout: default
-title: Model Analysis
+title: Analysis Tools
+parent: Analysis & Research
+nav_order: 2
 permalink: /analysis
 ---
 
-# Model Analysis
+# Analysis Tools
 
-This section discusses methods to analyze trained models. All configuration information and graphs for every model are stored for reference.
+This section discusses methods to analyze trained models. The system automatically generates training graphs and stores model checkpoints for analysis.
 
 ## Loss Graphs and Win-Rate Visualization
 
@@ -29,19 +31,21 @@ Three main graphs are recorded for every model:
 - Blue line at 0.54 (54%) indicates acceptance threshold
 - New model accepted only if win rate exceeds threshold
 
-### Neural Network I/O Analysis
+### Neural Network Architecture
 
-**Input Structure**:
-- 18x7x7 tensor containing last 18 board states
-- Each 7x7 layer represents one historical position
+The neural network processes Go positions with:
 
-**Output Components**:
-- **P Vector**: 50x1 probability distribution
-  - 49 board intersections + 1 pass move
-  - Values between 0 and 1 (sum to 1)
-- **V Value**: Single scalar in [-1, 1]
-  - Indicates position evaluation
-  - -1 = likely loss, +1 = likely win
+**Input**: Board state encoded as multi-channel tensor
+- Multiple planes representing current and historical positions
+- Encodes stone positions, turn information, and game history
+
+**Output**:
+- **Policy (P)**: Probability distribution over all legal moves
+  - Includes pass move option
+  - Softmax normalized (sums to 1)
+- **Value (V)**: Position evaluation score
+  - Range: [-1, 1]
+  - Represents expected game outcome from current position
 
 ## Theoretical Fine-Tuning
 
@@ -51,30 +55,31 @@ Key parameters in `config.yaml` for model tuning:
 
 ```yaml
 # Network Architecture
-num_channels: 128      # Width of residual blocks
-num_blocks: 9          # Depth of network
+num_channels: 128             # Width of convolutional layers
+network_type: RES            # ResNet architecture
 
 # Training Hyperparameters  
-learning_rate: 0.0001  # Initial learning rate
-batch_size: 2048       # Samples per batch
-epochs: 10             # Training epochs per iteration
+learning_rate: 0.0001        # Base learning rate
+batch_size: 2048             # Training batch size
+epochs: 10                   # Epochs per iteration
 
 # MCTS Parameters
-num_mcts_sims: 500     # Simulations per move
-cpuct: 1.0            # Exploration constant
+num_full_search_sims: 500    # MCTS simulations per move
+c_puct: 1.0                  # UCT exploration constant
+temperature_threshold: 4     # Moves before deterministic play
 ```
 
 ### Expected Outcomes
 
-**Increasing Network Capacity**:
-- More channels → Better pattern recognition
-- More blocks → Deeper strategic understanding
-- Trade-off: Slower inference time
+**Network Tuning**:
+- `num_channels`: Increase for better pattern recognition
+- `network_type`: RES (ResNet) or CNN options available
+- Trade-off: Larger networks require more compute
 
-**Adjusting MCTS**:
-- Higher simulations → Stronger play
-- Higher C_PUCT → More exploration
-- Trade-off: Longer move generation
+**MCTS Tuning**:
+- `num_full_search_sims`: More simulations = stronger play
+- `c_puct`: Higher values encourage exploration
+- `temperature_threshold`: Controls move randomness in early game
 
 ## Model Explainability with Grad-CAM
 
@@ -134,37 +139,41 @@ Monitor these metrics across iterations:
    - Shorter games → More decisive play
    - Very short games → Possible issues
 
-### Model Strength Estimation
+### Model Evaluation Methods
 
-Approximate ELO can be calculated:
-- Compare against known engines
-- Track relative improvements
-- Account for board size differences
+1. **Arena Win Rates**: Track improvement across iterations
+2. **Self-Play Quality**: Review generated training games
+3. **Manual Testing**: Play against model via GTP interface
+4. **KataGo Comparison**: Use KataGo integration for analysis
 
-## Advanced Analysis Tools
+## Practical Analysis Workflow
 
-### Position-Specific Analysis
+### Accessing Training Metrics
 
-```python
-# Analyze specific board positions
-analyzer.analyze_position(board_state)
-# Returns: Move rankings, win probabilities
+1. **View Training Graphs**: Check `logs/graphs/` for PNG files
+   - Graphs are saved with timestamps
+   - Updated after each training iteration
+
+2. **Load Model Checkpoints**: Use saved models in `logs/checkpoints/`
+   - `best.pth.tar`: Current best model
+   - `checkpoint_X.pth.tar`: Specific iterations
+
+3. **Review Game Records**: Analyze SGF files in `logs/arena_game_history/`
+   - Contains games from arena evaluation
+   - Can be opened with any SGF viewer
+
+### Using the GTP Interface
+
+Test models interactively:
+```bash
+# Launch GTP engine with trained model
+python gtp/engine.py
 ```
 
-### Comparative Analysis
-
-```python
-# Compare models on test positions
-compare_models(model1, model2, test_set)
-# Returns: Agreement rate, strength difference
-```
-
-### Strategic Pattern Detection
-
-Identify learned patterns:
-- Common opening sequences
-- Tactical motifs
-- Endgame techniques
+This allows:
+- Playing against the model
+- Analyzing specific positions
+- Testing model responses
 
 ## Next Steps
 

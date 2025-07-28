@@ -10,9 +10,8 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 from neural_network.neural_net import NeuralNet
-from pytorch_classification.utils import Bar, AverageMeter
+from .training_utils import Bar, AverageMeter
 from .go_alphanet import AlphaNetMaker as NetMaker
-from .go_alphanet_deprecated import AlphaNetMakerDeprecated
 from .go_neural_net import GoNNet
 import matplotlib.pyplot as plt
 
@@ -31,9 +30,8 @@ class NNetWrapper(NeuralNet):
             self.nnet = netMkr.makeNet()
         elif self.netType == 'CNN':
             self.nnet = GoNNet(game, self.config)
-        elif self.netType == 'DEP':
-            maker = AlphaNetMakerDeprecated(game)
-            self.nnet = maker.makeNet()
+        else:
+            raise ValueError(f"Unknown network type: {self.netType}. Valid options are 'RES' or 'CNN'")
 
         self.board_x, self.board_y = game.getBoardSize()
         self.action_size = game.getActionSize()
