@@ -25,7 +25,6 @@ AZ-Go/
 ├── lifecycle/           # Training lifecycle management
 ├── logger/              # Logging utilities
 ├── neural_network/      # Neural network models
-├── pytorch_classification/  # Additional ML utilities
 ├── training/            # Training pipeline components
 ├── utils/               # General utilities
 ├── definitions.py       # Common path definitions
@@ -48,7 +47,7 @@ Deep learning models for position evaluation:
 - `neural_net_wrapper.py` - PyTorch model wrapper
 - `go_neural_net.py` - Go-specific neural network implementation
 - `go_alphanet.py` - Main AlphaZero network architecture
-- `go_alphanet_deprecated.py` - Deprecated network architecture
+- `training_utils.py` - Training utilities (Bar and AverageMeter)
 
 ### Monte Carlo Tree Search (`mcts.py`)
 The MCTS algorithm implementation for move selection, featuring:
@@ -66,7 +65,6 @@ Utility scripts for testing and debugging:
 
 ### Training Pipeline (`training/`)
 Components for the self-play training loop:
-- `coach.py` - Main training coordinator
 - `overseer.py` - Training overseer that manages iterations
 - `self_play_manager.py` - Manages self-play game generation
 - `arena.py` - Model comparison arena (class, not standalone script)
@@ -89,7 +87,6 @@ Infrastructure for distributed training:
 Go engine implementation for playing against the model:
 - `engine.py` - Main engine interface
 - `run_engine.py` - Engine runner script (accepts -cli flag)
-- `engine_legacy.py` - Legacy engine implementation
 - `engine_config.yaml` - Engine configuration
 - `build_engine.sh` - Engine build script (PyInstaller)
 - `README.md` - Engine documentation
@@ -116,7 +113,7 @@ Integration with KataGo for move analysis:
 
 All configuration is managed through `configs/config.yaml`, which controls:
 - Board size and game rules
-- Neural network architecture
+- Neural network architecture (RES or CNN)
 - MCTS parameters
 - Training hyperparameters
 - Distributed training settings
@@ -131,18 +128,12 @@ All configuration is managed through `configs/config.yaml`, which controls:
 
 ## Key Files Reference
 
-| File | Purpose |
-|------|---------|
-| `mcts.py` | MCTS algorithm implementation |
-| `definitions.py` | Common path definitions and configurations |
-| `go/go_logic.py` | Go game rules |
-| `neural_network/go_alphanet.py` | Neural network architecture |
-| `training/coach.py` | Training orchestration |
-| `training/overseer.py` | Main training loop management |
-| `distributed/ssh_connector.py` | Remote worker management |
-| `lifecycle/neural_net_manager.py` | Model versioning |
-| `logger/graph_logger.py` | Training visualization |
-| `utils/config_handler.py` | Configuration file management |
+| File                              | Purpose                                    |
+|-----------------------------------|--------------------------------------------|
+| `mcts.py`                         | MCTS algorithm implementation              |
+| `neural_network/go_alphanet.py`   | Neural network architecture                |
+| `go/go_logic.py`                  | Go game rules                              |
+| `training/overseer.py`            | Main training loop management              |
 
 ## Development Guidelines
 
@@ -150,5 +141,4 @@ When modifying the codebase:
 1. Game logic changes should be made in `go/`
 2. Neural network modifications go in `neural_network/`
 3. Training algorithm changes belong in `training/`
-4. New analysis tools should integrate with `katago/`
-5. Always update `configs/config.yaml` for new parameters
+4. Always update `configs/config.yaml` for new parameters
