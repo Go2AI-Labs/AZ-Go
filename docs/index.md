@@ -16,7 +16,7 @@ A distributed AlphaZero implementation specifically designed for training Go mod
 
 <div style="background-color: #f0f8ff; border: 2px solid #1e90ff; border-radius: 8px; padding: 20px; margin: 20px 0;">
   <h3 style="margin-top: 0; color: #1e90ff;">🔗 Notion Documentation & Model Archives</h3>
-  <p style="margin-bottom: 10px;">Access our comprehensive Notion workspace containing:</p>
+  <p style="margin-bottom: 10px;">Access our Notion workspace containing:</p>
   <ul style="margin-bottom: 15px;">
     <li><strong>Model Archives</strong> - Download trained model checkpoints</li>
     <li><strong>Training Logs</strong> - Detailed experiment records</li>

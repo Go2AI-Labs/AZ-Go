@@ -51,7 +51,6 @@ Below is a comprehensive list of all trained models, their training parameters, 
 | **Model Z** | 1,340,000 | Feb 24, 2025 | 400 MCTS sims, no fast sims | Built on Model X base |
 | **Model AA** | 995,000 | Mar 3, 2025 | 500 MCTS sims | Fresh start with increased simulations |
 | **Model AB** | 475,000 | Mar 24, 2025 | temp=4, 500 sims | Reduced temperature for more deterministic play |
-| **Model AC** | 500,000 | TBD | In development | Details pending |
 
 ### Latest Stable Release
 - **Model AB** (March 2025)
