@@ -95,34 +95,19 @@ learning_rate: 0.01
 epochs: 10
 ```
 
-### Engine Configuration (`engine/engine_config.yaml`)
-
-```yaml
-# KataGo integration
-katago_path: /path/to/katago
-model_path: /path/to/katago/model.gz
-
-# Analysis settings
-analysis_threads: 4
-max_visits: 10000
-```
-
 ## Common Workflows
 
 ### 1. Training a New Model
 
 ```bash
 # Step 1: Configure parameters
-vim configs/config.yaml
+nano configs/config.yaml
 
-# Step 2: Start overseer
-python start_main.py --iterations 100
+# Step 2: Start overseer (only 1 across all machines)
+python start_main.py
 
-# Step 3: Start workers (on each machine)
+# Step 3: Start workers (up to two per machine)
 python start_worker.py
-
-# Step 4: Monitor progress
-tail -f logs/training.log
 ```
 
 ### 2. Resuming Training
@@ -133,61 +118,34 @@ tail -f logs/training.log
 python start_main.py
 ```
 
-### 3. Running Tournaments
-
-```python
-# arena.py is a class, not a standalone script
-# To run tournaments, you would need to create a script like:
-
-from training.arena import Arena
-from training.coach import Coach
-from go.go_game import GoGame
-from utils.config_handler import ConfigHandler
-
-# Load models and create players
-# Then use Arena class to pit them against each other
-```
-
-### 4. Batch Analysis
-
-```python
-# Example script for batch analysis
-from katago.katago_wrapper import KataGoWrapper
-from katago.katago_parameters import KATAGO_START_CMD
-from logger.gtp_logger import load_sgf
-import glob
-
-# KataGoWrapper requires the start command
-analyzer = KataGoWrapper(KATAGO_START_CMD)
-
-# Load and analyze SGF files
-sgf_files = glob.glob("games/*.sgf")
-for sgf in sgf_files:
-    moves = load_sgf(sgf)
-    # Convert moves to actions and use query() method
-    # See katago/run_katago.py for example usage
-```
-
 ## Integration with Go GUIs
 
 ### Sabaki
 
-1. Install Sabaki
-2. Add engine:
-   - Path: `/path/to/python`
-   - Arguments: `/path/to/gtp/engine.py`
-3. Configure time settings
+To use AZ-Go with Sabaki, you need to build a standalone executable:
 
-### Lizzie
+1. **Build the GTP engine executable:**
+   ```bash
+   cd /path/to/AZ-Go
+   ./engine/build_engine.sh
+   ```
+   This creates an executable in `engine/dist/run_engine`
 
-```bash
-# Create wrapper script
-echo '#!/bin/bash
-python /path/to/gtp/engine.py' > azgo-gtp.sh
-chmod +x azgo-gtp.sh
+2. **Configure the engine:**
+   - Place your model file (e.g., `best.pth.tar`) in the `engine/` directory
+   - Edit `engine/engine_config.yaml` to set the correct `network_type`:
+     - `RES` - 19 layer ResNet (current default)
+     - `DEP` - Deprecated 18 layer ResNet (e.g., Model Q)
+     - `CNN` - Convolutional Neural Network (not recommended)
 
-# Add to Lizzie engines
-```
+3. **Add to Sabaki:**
+   - Open Sabaki → Engines → Manage Engines
+   - Add new engine:
+     - Path: `/path/to/AZ-Go/engine/dist/run_engine`
+     - No arguments needed
+   - Configure time settings as desired
+
+Note: The engine at `engine/run_engine.py` is the GTP interface. The `gtp/engine.py` file is for analysis and visualization, not for playing.
 
 ## Debugging and Analysis
 
@@ -203,70 +161,8 @@ python debug/debug_arena.py
 # Test scoring
 python debug/debug_scoring.py
 
-# Test worker connection
+# Test worker self-play functionality
 python debug/debug_worker.py
-```
-
-### Log Files
-
-```
-logs/
-├── training.log          # Main training progress
-├── arena.log            # Game results
-├── worker_*.log         # Individual worker logs
-└── error.log           # Error messages
-```
-
-### Performance Profiling
-
-```bash
-# Profile MCTS performance
-python -m cProfile -o profile.stats mcts.py
-
-# Analyze results
-python -m pstats profile.stats
-```
-
-## Advanced Usage
-
-### Custom Neural Networks
-
-```python
-# custom_net.py
-from neural_network.neural_net import NeuralNet
-
-class CustomNet(NeuralNet):
-    def __init__(self, game, args):
-        # Your implementation
-        pass
-```
-
-### Modified MCTS
-
-```python
-# custom_mcts.py
-from mcts import MCTS
-
-class CustomMCTS(MCTS):
-    def search(self, state):
-        # Your modifications
-        pass
-```
-
-### Distributed Setup
-
-```yaml
-# distributed_config.yaml
-workers:
-  - host: worker1.example.com
-    user: azgo
-    key: ~/.ssh/id_rsa
-    gpu: 0
-  
-  - host: worker2.example.com
-    user: azgo
-    key: ~/.ssh/id_rsa
-    gpu: 1
 ```
 
 ## Tips and Best Practices
@@ -277,42 +173,3 @@ workers:
 2. **Monitor GPU**: Use `nvidia-smi` to check utilization
 3. **Backup Models**: Regular backups of best models
 4. **Log Analysis**: Check logs for convergence issues
-
-### Playing Tips
-
-1. **Time Management**: Adjust MCTS sims based on time
-2. **Opening Book**: Can integrate with opening databases
-3. **Endgame**: May need position-specific tuning
-
-### System Requirements
-
-- **GPU Memory**: 4GB minimum, 8GB+ recommended
-- **CPU**: Multiple cores for parallel MCTS
-- **Storage**: 50GB+ for logs and checkpoints
-- **Network**: Fast connection for distributed training
-
-## Troubleshooting
-
-### Common Issues
-
-**Model not improving**
-- Check learning rate decay
-- Verify arena threshold
-- Examine training examples
-
-**Worker disconnections**
-- Check SSH keys
-- Verify network stability
-- Monitor worker resources
-
-**Out of memory**
-- Reduce batch size
-- Lower MCTS simulations
-- Use gradient accumulation
-
-## Next Steps
-
-- Join our community discussions
-- Contribute improvements
-- Share your trained models
-- Report issues on GitHub
