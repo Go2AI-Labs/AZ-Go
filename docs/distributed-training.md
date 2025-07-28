@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Distributed Training
-nav_order: 3
+parent: Training & Deployment
+nav_order: 2
 permalink: /distributed-training
 ---
 

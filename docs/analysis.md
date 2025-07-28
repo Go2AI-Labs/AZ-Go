@@ -1,10 +1,12 @@
 ---
 layout: default
-title: Model Analysis
+title: Analysis Tools
+parent: Analysis & Research
+nav_order: 2
 permalink: /analysis
 ---
 
-# Model Analysis
+# Analysis Tools
 
 This section discusses methods to analyze trained models. All configuration information and graphs for every model are stored for reference.
 

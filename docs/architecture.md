@@ -1,6 +1,8 @@
 ---
 layout: default
-title: Architecture
+title: Architecture Overview
+parent: Technical Documentation
+nav_order: 2
 permalink: /architecture
 ---
 

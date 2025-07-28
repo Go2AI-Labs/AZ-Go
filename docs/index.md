@@ -4,7 +4,7 @@ title: Home
 permalink: /
 ---
 
-# AZ-Go: AlphaZero for Go
+# AZ-Go: A Custom AlphaGo Zero Implementation for Compact Board Configurations
 
 A distributed AlphaZero implementation specifically designed for training Go models on a 7x7 board. This project implements the AlphaGo Zero algorithm with distributed training capabilities, neural network management, and comprehensive logging.
 

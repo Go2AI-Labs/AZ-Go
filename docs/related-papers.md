@@ -1,7 +1,8 @@
 ---
 layout: default
-title: Related Papers & Resources
-nav_order: 5
+title: Related Papers
+parent: Analysis & Research
+nav_order: 3
 permalink: /related-papers
 ---
 

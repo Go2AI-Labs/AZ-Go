@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Model Analysis
-nav_order: 4
+parent: Analysis & Research
+nav_order: 1
 permalink: /model-analysis
 ---
 

@@ -1,6 +1,8 @@
 ---
 layout: default
-title: Training
+title: Training Process
+parent: Training & Deployment
+nav_order: 1
 permalink: /training
 ---
 

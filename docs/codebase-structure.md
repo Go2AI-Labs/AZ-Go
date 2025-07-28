@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Codebase Structure
-nav_order: 2
+parent: Technical Documentation
+nav_order: 1
 permalink: /codebase-structure
 ---
 

@@ -1,6 +1,8 @@
 ---
 layout: default
-title: Usage
+title: Usage Guide
+parent: Getting Started
+nav_order: 2
 permalink: /usage
 ---
 

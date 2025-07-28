@@ -1,6 +1,8 @@
 ---
 layout: default
-title: Installation
+title: Installation Guide
+parent: Getting Started
+nav_order: 1
 permalink: /installation
 ---
 
