@@ -19,7 +19,7 @@ num_parallel_games: 12              # number of games for worker server to play 
 
 # console parameters
 display: 0                    # 0 -> display bar | 1 -> display board
-debug_mode: false              # enable debug output
+debug_mode: true              # enable debug output
 
 # MCTS parameters
 num_full_search_sims: 500     # number of moves for MCTS to simulate
