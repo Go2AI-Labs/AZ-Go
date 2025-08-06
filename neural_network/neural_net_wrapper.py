@@ -247,7 +247,7 @@ class NNetWrapper(NeuralNet):
         else:
             device = torch.device('cpu')
 
-        checkpoint = torch.load(filepath, map_location=device)
+        checkpoint = torch.load(filepath, map_location=device, weights_only=True)
 
         self.nnet.load_state_dict(checkpoint['state_dict'])
 
@@ -259,9 +259,15 @@ class NNetWrapper(NeuralNet):
             raise BaseException("No model in path {}".format(filepath))
 
         if cpu_only:
-            checkpoint = torch.load(filepath, map_location=torch.device('cpu'))
+            device = torch.device('cpu')
+        elif torch.backends.mps.is_available():
+            device = torch.device('mps')
+        elif torch.cuda.is_available():
+            device = torch.device('cuda')
         else:
-            checkpoint = torch.load(filepath)
+            device = torch.device('cpu')  # fallback
+
+        checkpoint = torch.load(filepath, map_location=device, weights_only=True)
 
         state_dict = checkpoint['state_dict']
 
@@ -286,6 +292,6 @@ class NNetWrapper(NeuralNet):
         else:
             device = torch.device('cpu')
 
-        checkpoint = torch.load(filepath, map_location=device)
+        checkpoint = torch.load(filepath, map_location=device, weights_only=True)
 
         self.nnet.load_state_dict(checkpoint['state_dict'])
