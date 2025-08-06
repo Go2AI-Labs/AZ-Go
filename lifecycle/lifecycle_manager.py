@@ -4,6 +4,7 @@ import time
 from definitions import DIS_SELF_PLAY_PATH, CONFIG_PATH, DIS_ARENA_PATH
 from utils.config_handler import ConfigHandler
 from utils.data_serializer import load_json_from_disk
+from utils.print_debug import print_debug
 
 """
 This class basically handles the life cycle of self play and arena from the server side
@@ -48,7 +49,9 @@ class LifecycleManager:
         or until all files are read.
         """
         files = glob.glob(DIS_SELF_PLAY_PATH + "*")
+        print_debug(f"files: {files}")
         for file in files:
+            print_debug(f"  file: {file}")
             if len(self.train_example_manager.train_examples) >= self.config["max_length_of_queue"]:
                 self.is_complete_self_play = True
                 break

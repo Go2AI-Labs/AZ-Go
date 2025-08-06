@@ -74,7 +74,7 @@ class NNetWrapper(NeuralNet):
             v_losses = AverageMeter()
             end = time.time()
 
-            bar = Bar('Training Network', max=int(len(examples) / self.config["batch_size"]))
+            bar = Bar('Training Network', max_value=int(len(examples) / self.config["batch_size"]))
             batch_idx = 0
 
             while batch_idx < int(len(examples) / self.config["batch_size"]):

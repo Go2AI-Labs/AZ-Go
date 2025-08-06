@@ -25,7 +25,7 @@ class AverageMeter(object):
 
 class Bar(object):
     """Simple progress bar implementation"""
-    def __init__(self, message, max_value):
+    def __init__(self, message, max_value=None):
         self.message = message
         self.max_value = max_value
         self.index = 0
