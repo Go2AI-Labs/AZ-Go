@@ -11,11 +11,11 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # path to project root
 CONFIG_PATH = os.path.join(ROOT_DIR, 'configs/config.yaml')  # path to config.yaml
 SENS_CONFIG_PATH = os.path.join(ROOT_DIR, 'configs/sensitive.yaml')  # path to sensitive_config.yaml
 # LOGS
-CHECKPOINT_PATH = os.path.join(ROOT_DIR, 'logs/checkpoints')  # directory where models will be loaded and saved
-EXAMPLES_PATH = os.path.join(ROOT_DIR, 'logs/train_examples')  # directory where iteration train examples will be saved
-GAME_HISTORY_PATH = os.path.join(ROOT_DIR, 'logs/game_history')  # directory where arena SGF files will be saved
-GRAPH_PATH = os.path.join(ROOT_DIR, 'logs/graphs')  # directory where loss and win rate graphs will be saved
-TRAIN_LOG_PATH = os.path.join(ROOT_DIR, 'logs/train_logs')  # directory where detailed loss data (CSV) will be saved
+CHECKPOINT_PATH = os.path.join(ROOT_DIR, 'logs/checkpoints/')  # directory where models will be loaded and saved
+EXAMPLES_PATH = os.path.join(ROOT_DIR, 'logs/train_examples/')  # directory where iteration train examples will be saved
+GAME_HISTORY_PATH = os.path.join(ROOT_DIR, 'logs/game_history/')  # directory where arena SGF files will be saved
+GRAPH_PATH = os.path.join(ROOT_DIR, 'logs/graphs/')  # directory where loss and win rate graphs will be saved
+TRAIN_LOG_PATH = os.path.join(ROOT_DIR, 'logs/train_logs/')  # directory where detailed loss data (CSV) will be saved
 
 # Paths only used for distributed training
 DIS_STATUS_PATH = os.path.join(ROOT_DIR,

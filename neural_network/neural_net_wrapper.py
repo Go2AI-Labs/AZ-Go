@@ -219,7 +219,7 @@ class NNetWrapper(NeuralNet):
         if not torch.cuda.is_available():
             checkpoint = torch.load(filepath, map_location=torch.device('cpu'))
         else:
-            checkpoint = torch.load(filepath)
+            checkpoint = torch.load(filepath, weights_only=True)
 
         self.nnet.load_state_dict(checkpoint['state_dict'])
 

@@ -34,7 +34,7 @@ class SSHConnector:
     def download_best_model(self):
         with Connection(self.main_server_address, self.main_username) as c:
             try:
-                c.get(self.main_path + "logs/checkpoints/best.pth.tar", CHECKPOINT_PATH + "/")
+                c.get(self.main_path + "logs/checkpoints/best.pth.tar", CHECKPOINT_PATH + "best.pth.tar")
                 return True
             except FileNotFoundError:
                 print(f"No best.pth.tar found at {self.main_path + 'logs/checkpoints/best.pth.tar'}")
@@ -44,8 +44,8 @@ class SSHConnector:
     def download_arena_models(self):
         with Connection(self.main_server_address, self.main_username) as c:
             try:
-                c.get(self.main_path + "logs/checkpoints/previous_net.pth.tar", CHECKPOINT_PATH + "/")
-                c.get(self.main_path + "logs/checkpoints/current_net.pth.tar", CHECKPOINT_PATH + "/")
+                c.get(self.main_path + "logs/checkpoints/previous_net.pth.tar", CHECKPOINT_PATH + "previous_net.pth.tar")
+                c.get(self.main_path + "logs/checkpoints/current_net.pth.tar", CHECKPOINT_PATH + "current_net.pth.tar")
                 return True
             except FileNotFoundError:
                 print(f"No previous_net.pth.tar found at {self.main_path + 'logs/checkpoints/previous_net.pth.tar'}")
@@ -55,7 +55,7 @@ class SSHConnector:
     def download_status(self):
         with Connection(self.main_server_address, self.main_username) as c:
             try:
-                c.get(self.main_path + "distributed/status.txt", DIS_STATUS_PATH)
+                c.get(self.main_path + "distributed/status.txt", DIS_STATUS_PATH + "status.txt")
                 return True
             except FileNotFoundError:
                 print(f"No status.txt found at {self.main_path + 'distributed/status.txt'}")
