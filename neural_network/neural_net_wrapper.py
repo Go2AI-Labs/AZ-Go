@@ -36,8 +36,14 @@ class NNetWrapper(NeuralNet):
         self.board_x, self.board_y = game.getBoardSize()
         self.action_size = game.getActionSize()
 
-        if torch.cuda.is_available():
-            self.nnet.cuda()
+        if torch.backends.mps.is_available():
+            device = torch.device('mps')
+        elif torch.cuda.is_available():
+            device = torch.device('cuda')
+        else:
+            device = torch.device('cpu')
+
+        self.nnet.to(device)
 
         self.lrs = []
 
@@ -91,8 +97,17 @@ class NNetWrapper(NeuralNet):
                 target_vs = torch.FloatTensor(np.array(vs).astype(np.float64))
 
                 # predict
-                if torch.cuda.is_available():
-                    boards, target_pis, target_vs = boards.contiguous().cuda(), target_pis.contiguous().cuda(), target_vs.contiguous().cuda()
+                if torch.backends.mps.is_available():
+                    device = torch.device('mps')
+                elif torch.cuda.is_available():
+                    device = torch.device('cuda')
+                else:
+                    device = torch.device('cpu')
+
+                boards = boards.contiguous().to(device)
+                target_pis = target_pis.contiguous().to(device)
+                target_vs = target_vs.contiguous().to(device)
+
                 boards, target_pis, target_vs = Variable(boards), Variable(target_pis), Variable(target_vs)
 
                 # measure data loading time
@@ -177,7 +192,16 @@ class NNetWrapper(NeuralNet):
         # print("stack length: ", len(board))
         board = torch.FloatTensor(board.astype(np.float64))
         # print("stack length2: ", len(board))
-        if torch.cuda.is_available(): board = board.contiguous().cuda()
+        # if torch.cuda.is_available(): board = board.contiguous().cuda()
+        if torch.backends.mps.is_available():
+            device = torch.device('mps')
+        elif torch.cuda.is_available():
+            device = torch.device('cuda')
+        else:
+            device = torch.device('cpu')
+
+        board = board.contiguous().to(device)
+
         board = Variable(board, requires_grad=False)
         # print("stack length3: ", len(board))
         board = board.view(19, self.board_x, self.board_y)
@@ -216,10 +240,14 @@ class NNetWrapper(NeuralNet):
 
         # if cpu_only:
         # Load with CPU as the device if CUDA is not available
-        if not torch.cuda.is_available():
-            checkpoint = torch.load(filepath, map_location=torch.device('cpu'))
+        if torch.backends.mps.is_available():
+            device = torch.device('mps')
+        elif torch.cuda.is_available():
+            device = torch.device('cuda')
         else:
-            checkpoint = torch.load(filepath, weights_only=True)
+            device = torch.device('cpu')
+
+        checkpoint = torch.load(filepath, map_location=device)
 
         self.nnet.load_state_dict(checkpoint['state_dict'])
 
@@ -251,9 +279,13 @@ class NNetWrapper(NeuralNet):
 
         # if cpu_only:
         # Load with CPU as the device if CUDA is not available
-        if not torch.cuda.is_available():
-            checkpoint = torch.load(filepath, map_location=torch.device('cpu'))
+        if torch.backends.mps.is_available():
+            device = torch.device('mps')
+        elif torch.cuda.is_available():
+            device = torch.device('cuda')
         else:
-            checkpoint = torch.load(filepath)
+            device = torch.device('cpu')
+
+        checkpoint = torch.load(filepath, map_location=device)
 
         self.nnet.load_state_dict(checkpoint['state_dict'])

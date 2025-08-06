@@ -1,3 +1,5 @@
+import time
+from datetime import timedelta
 """
 Training utilities for neural network wrapper
 Extracted from pytorch_classification to reduce dependencies
@@ -35,9 +37,11 @@ class Bar(object):
         self.bar_suffix = '| '
         self.empty_fill = ' '
         self.fill = '#'
+        self.start_time = None
     
     def start(self):
         self.index = 0
+        self.start_time = time.time()
         return self
     
     def next(self):
@@ -64,3 +68,19 @@ class Bar(object):
     
     def finish(self):
         print()  # New line after progress bar
+
+    @property
+    def elapsed_td(self):
+        if self.start_time is None:
+            return timedelta(seconds=0)
+        return timedelta(seconds=time.time() - self.start_time)
+
+    @property
+    def eta_td(self):
+        """Estimated time remaining as timedelta"""
+        if self.start_time is None or self.index == 0 or self.max_value is None:
+            return timedelta(seconds=0)
+        elapsed = time.time() - self.start_time
+        estimated_total_time = elapsed / self.index * self.max_value
+        eta = estimated_total_time - elapsed
+        return timedelta(seconds=eta)
